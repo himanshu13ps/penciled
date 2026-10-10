@@ -1,0 +1,1 @@
+Sketch how our food delivery app works: customers and couriers use the mobile app, which talks to an API gateway. Behind it are order, restaurant and courier-matching services. Orders live in Postgres, live courier locations in Redis, and order events go through Kafka to a notification service that sends push notifications through Firebase.

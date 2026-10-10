@@ -1,0 +1,11 @@
+{
+  "valid": true,
+  "errors": [],
+  "warnings": [
+    {
+      "path": "direction",
+      "code": "aspect",
+      "message": "the drawing is very wide (1880×560); try \"direction\": \"TB\""
+    }
+  ]
+}

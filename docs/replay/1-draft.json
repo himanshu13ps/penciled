@@ -1,0 +1,37 @@
+{
+  "version": "0.1",
+  "type": "architecture",
+  "title": "Food delivery",
+  "direction": "LR",
+  "nodes": [
+    { "id": "customer", "label": "Customer", "shape": "person" },
+    { "id": "courier", "label": "Courier", "shape": "person" },
+    { "id": "app", "label": "Mobile app", "shape": "rounded" },
+    { "id": "gateway", "label": "API gateway", "shape": "rounded" },
+    { "id": "orders", "label": "Orders", "shape": "rounded", "group": "services" },
+    { "id": "restaurants", "label": "Restaurants", "shape": "rounded", "group": "services" },
+    { "id": "matching", "label": "Courier\nmatching", "shape": "rounded", "group": "services" },
+    { "id": "ordersdb", "label": "Orders DB", "sublabel": "Postgres", "shape": "database" },
+    { "id": "locations", "label": "Live locations", "sublabel": "Redis", "shape": "database" },
+    { "id": "events", "label": "Order events", "sublabel": "Kafka", "shape": "queue" },
+    { "id": "notify", "label": "Notifications", "shape": "rounded" },
+    { "id": "firebase", "label": "Firebase", "shape": "cloud" }
+  ],
+  "groups": [
+    { "id": "services", "label": "Services" }
+  ],
+  "edges": [
+    { "from": "customer", "to": "app" },
+    { "from": "courier", "to": "app" },
+    { "from": "app", "to": "gateway", "label": "HTTPS" },
+    { "from": "gateway", "to": "orders" },
+    { "from": "gateway", "to": "restaurants" },
+    { "from": "gateway", "to": "matching" },
+    { "from": "orders", "to": "ordersdb" },
+    { "from": "matching", "to": "locations" },
+    { "from": "orders", "to": "events", "label": "publish", "style": "dashed" },
+    { "from": "events", "to": "notify", "style": "dashed" },
+    { "from": "notify", "to": "firebase", "label": "push" },
+    { "from": "firebase", "to": "app", "style": "dashed" }
+  ]
+}
