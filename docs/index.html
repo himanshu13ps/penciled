@@ -433,8 +433,8 @@ footer .logo { font-size: 26px; color: var(--ink); }
 <section id="outputs">
   <div class="wrap">
     <p class="kicker">Outputs</p>
-    <h2>An SVG, or a page people can play with</h2>
-    <p class="sub">Both come from the same input and seed, so they match. Both embed the handwriting font, so they work offline and anywhere.</p>
+    <h2>An SVG, a PNG, or a page people can play with</h2>
+    <p class="sub">All come from the same input and seed, so they match, and the handwriting font is built in. For places that don't show SVG, like chat apps and email, write a PNG: <code>-o diagram.png</code> (it uses Chrome, Edge, Chromium or Brave if you have one installed).</p>
     <div class="outputs">
       <div class="panel">
         <h3>SVG</h3>
@@ -523,7 +523,7 @@ footer .logo { font-size: 26px; color: var(--ink); }
 <span class="c">$</span> cd penciled
 <span class="c">$</span> node skills/penciled/src/cli.js \
     examples/web-app.json -o web-app.svg</pre>
-        <p>Add <code>-o out.html</code> for the viewer, <code>validate</code> to check without drawing, <code>--seed</code> for another take.</p>
+        <p>Use <code>-o out.png</code> for a PNG, <code>-o out.html</code> for the viewer, <code>validate</code> to check without drawing, <code>--seed</code> for another take.</p>
       </div>
       <div class="panel">
         <h3><b>3</b>In your browser</h3>
@@ -562,7 +562,7 @@ footer .logo { font-size: 26px; color: var(--ink); }
       <details><summary>Can I place things exactly where I want?</summary><div class="a"><p>Yes. Layout is automatic by default, but if every node has a <code>position</code>, penciled uses your positions as given. See the event pipeline in the gallery.</p></div></details>
       <details><summary>How do I get the same drawing every time?</summary><div class="a"><p>Set <code>paper.seed</code>. The same input and seed always produce the same drawing, so you can edit a label and re-render without the whole sketch changing character. In the viewer, save the JSON to keep the seed you liked.</p></div></details>
       <details><summary>Can I edit the drawing afterwards?</summary><div class="a"><p>Edit the JSON and render again; that's the intended way. The SVG is a normal vector file, so you can also open it in a vector editor, though it is made of many small pencil strokes.</p></div></details>
-      <details><summary>How big are the files?</summary><div class="a"><p>Usually 100 to 400 KB for an SVG and about 160 KB for the viewer. The paper grain and the embedded font are most of it. PNGs are larger, often several megabytes, because the paper grain doesn't compress; JPG is about a tenth of the size and fine for sharing.</p></div></details>
+      <details><summary>How big are the files?</summary><div class="a"><p>Usually 100 to 400 KB for an SVG and about 160 KB for the viewer. PNGs from the command line are twice the drawing's size by default; use <code>--scale 1</code> for smaller files. The paper grain and the embedded font are most of it. PNGs are larger, often several megabytes, because the paper grain doesn't compress; JPG is about a tenth of the size and fine for sharing.</p></div></details>
       <details><summary>What does it cost, and what's the licence?</summary><div class="a"><p>It's free and open source under the MIT licence. The handwriting font, Caveat, is under the SIL Open Font License.</p></div></details>
     </div>
   </div>

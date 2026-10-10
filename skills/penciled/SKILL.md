@@ -1,7 +1,7 @@
 ---
 name: penciled
 license: MIT
-description: Draw architecture and system diagrams that look hand-sketched in graphite pencil on paper (tapered, wobbly strokes, hatched shading, paper grain, handwritten labels), as an SVG file or a self-contained interactive HTML page. Use this whenever someone wants a hand-drawn, sketchy, whiteboard-style, napkin-sketch or pencil diagram of how a system fits together (services, databases, queues, users, external APIs, pipelines, cloud infrastructure, data flows), or asks you to "sketch" or "draw" an architecture, even if they never say "pencil". Not for charts of numbers, UI mockups, or precise engineering drawings.
+description: Draw architecture and system diagrams that look hand-sketched in graphite pencil on paper (tapered, wobbly strokes, hatched shading, paper grain, handwritten labels), as an SVG, a PNG or a self-contained interactive HTML page. Use this whenever someone wants a hand-drawn, sketchy, whiteboard-style, napkin-sketch or pencil diagram of how a system fits together (services, databases, queues, users, external APIs, pipelines, cloud infrastructure, data flows), or asks you to "sketch" or "draw" an architecture, even if they never say "pencil". Not for charts of numbers, UI mockups, or precise engineering drawings.
 ---
 
 # penciled
@@ -144,10 +144,20 @@ node PENCILED/src/cli.js docs/architecture.json -o docs/architecture.html
 
 # Plain SVG for a README, docs site or slide
 node PENCILED/src/cli.js docs/architecture.json -o docs/architecture.svg
+
+# PNG, for places that don't show SVG (chat, some wikis, email)
+node PENCILED/src/cli.js docs/architecture.json -o docs/architecture.png
 ```
 
 Pick by where the drawing is going. A person looking at it in a browser gets
-the most from the HTML page; anything embedded in a document wants the SVG.
+the most from the HTML page; anything embedded in a document wants the SVG;
+chat apps, email and wikis that don't show SVG want the PNG.
+
+PNG output borrows an installed Chrome, Edge, Chromium or Brave, run
+headless. If none is found the command fails with a clear message; then
+write the SVG or the HTML page instead and tell the user they can save a PNG
+from the page. A PNG is twice the drawing's size by default (`--scale 1` to
+`4`), and often a few megabytes, because paper grain doesn't compress.
 When unsure, write both: they come from the same input and seed, so they
 match. Both files embed the font, so they work offline and anywhere SVG
 renders. Expect roughly 100 to 400 KB per drawing; the paper grain is the

@@ -13,8 +13,8 @@ eraser smudge.
   together, arrows bend around boxes.
 - **Checks itself.** A validator catches mistakes and warns about crossings,
   overlaps and crowded labels before anything is drawn, with a fix for each.
-- **Two outputs.** A plain SVG, or one offline HTML page where the reader can
-  redraw, change paper and pencil, zoom and save PNG, JPG or SVG.
+- **Three outputs.** A plain SVG, a PNG, or one offline HTML page where the
+  reader can redraw, change paper and pencil, zoom and save PNG, JPG or SVG.
 - **No dependencies.** Node.js 18+ and nothing else. The handwriting font
   ([Caveat](https://fonts.google.com/specimen/Caveat), OFL) is embedded.
 
@@ -46,6 +46,7 @@ node skills/penciled/src/cli.js examples/web-app.json -o diagram.svg
 |---------|------|
 | `penciled diagram.json -o out.svg` | Draw an SVG |
 | `penciled diagram.json -o out.html` | Write the interactive viewer (or add `--html`) |
+| `penciled diagram.json -o out.png` | Write a PNG; needs Chrome, Edge, Chromium or Brave installed (`--scale 1` to `4`, default 2) |
 | `penciled validate diagram.json` | Check without drawing (`--json` for machine-readable output) |
 | `--seed N` | A different hand-drawn take; the same seed always gives the same drawing |
 | `--strict` | Treat warnings as failures |
