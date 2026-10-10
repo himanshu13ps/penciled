@@ -64,27 +64,33 @@ function push(p, toward, by) {
  */
 export function labelSpot(path, width, height, nodes, frames = []) {
   const { from, ctrl, to } = path;
-  const m = quadPoint(from, ctrl, to, 0.5);
-  const a = quadPoint(from, ctrl, to, 0.45), b = quadPoint(from, ctrl, to, 0.55);
-  const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-  let nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;
-  // Prefer the upper side (or the right side for vertical arrows).
-  if (ny > 0.01 || (Math.abs(ny) <= 0.01 && nx < 0)) { nx = -nx; ny = -ny; }
   const clear = (p) => {
-    const box = { x: p.x - width / 2 - 3, y: p.y - height * 0.8, width: width + 6, height: height };
+    // A few px of margin all round: handwriting leans and has descenders.
+    const box = { x: p.x - width / 2 - 5, y: p.y - height * 0.8 - 5, width: width + 10, height: height + 10 };
     // Frames (group outlines) may contain the label but not cut through it.
     const inside = (r) => box.x >= r.x && box.y >= r.y && box.x + box.width <= r.x + r.width && box.y + box.height <= r.y + r.height;
     return !nodes.some((r) => overlaps(box, r)) && !frames.some((r) => overlaps(box, r) && !inside(r));
   };
-  for (const dist of [14, 22, 34, 48]) {
-    for (const s of [1, -1]) {
-      // Offset grows with how sideways the text sits relative to the line.
-      const off = dist + Math.abs(nx) * (width / 2);
-      const p = { x: m.x + nx * s * off, y: m.y + ny * s * off + height * 0.3 };
-      if (clear(p)) return { ...p, clear: true };
+  // Beside the middle of the arrow first, then nearer either end.
+  let fallback = null;
+  for (const t of [0.5, 0.38, 0.62, 0.28, 0.72]) {
+    const m = quadPoint(from, ctrl, to, t);
+    const a = quadPoint(from, ctrl, to, t - 0.05), b = quadPoint(from, ctrl, to, t + 0.05);
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    let nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;
+    // Prefer the upper side (or the right side for vertical arrows).
+    if (ny > 0.01 || (Math.abs(ny) <= 0.01 && nx < 0)) { nx = -nx; ny = -ny; }
+    fallback ??= { x: m.x + nx * 14, y: m.y + ny * 14 + height * 0.3, clear: false };
+    for (const dist of [14, 22, 34]) {
+      for (const s of [1, -1]) {
+        // Offset grows with how sideways the text sits relative to the line.
+        const off = dist + Math.abs(nx) * (width / 2);
+        const p = { x: m.x + nx * s * off, y: m.y + ny * s * off + height * 0.3 };
+        if (clear(p)) return { ...p, clear: true };
+      }
     }
   }
-  return { x: m.x + nx * 14, y: m.y + ny * 14 + height * 0.3, clear: false };
+  return fallback;
 }
 
 // An arrow along a routed path: a pencil shaft with a little extra sag of its

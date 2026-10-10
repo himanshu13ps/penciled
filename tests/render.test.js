@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { render } from "../src/render.js";
+import { render } from "../skills/penciled/src/render.js";
 
 const load = (name) => JSON.parse(readFileSync(new URL(`../examples/${name}`, import.meta.url), "utf8"));
 
@@ -49,7 +49,7 @@ test("every shape renders", () => {
 });
 
 test("groups get a label and do not overlap their siblings", async () => {
-  const { layout } = await import("../src/layout.js");
+  const { layout } = await import("../skills/penciled/src/layout.js");
   const d = load("web-app.json");
   for (const direction of ["LR", "TB"]) {
     const sizes = new Map(d.nodes.map((n) => [n.id, { width: 120, height: 70 }]));
@@ -66,7 +66,7 @@ test("groups get a label and do not overlap their siblings", async () => {
 });
 
 test("manual positions are kept relative to each other", async () => {
-  const { layout } = await import("../src/layout.js");
+  const { layout } = await import("../skills/penciled/src/layout.js");
   const d = load("event-pipeline.json");
   const sizes = new Map(d.nodes.map((n) => [n.id, { width: 100, height: 60 }]));
   const { rects } = layout(d, sizes);

@@ -1,0 +1,31 @@
+{
+  "$schema": "../skills/penciled/schema/architecture.schema.json",
+  "version": "0.1",
+  "type": "architecture",
+  "title": "URL shortener",
+  "direction": "TB",
+  "nodes": [
+    {"id": "user", "label": "User", "shape": "person"},
+    {"id": "lb", "label": "Load balancer", "shape": "box"},
+    {"id": "app", "label": "App servers", "sublabel": "x2", "shape": "rounded", "group": "core"},
+    {"id": "cache", "label": "Cache", "sublabel": "Redis", "shape": "database", "group": "core"},
+    {"id": "db", "label": "Links DB", "sublabel": "Postgres", "shape": "database", "shade": "light", "group": "core"},
+    {"id": "clicks", "label": "Click events", "sublabel": "Kafka", "shape": "queue", "group": "analytics"},
+    {"id": "stats", "label": "Stats job", "shape": "rounded", "group": "analytics"},
+    {"id": "report", "label": "Click reports", "shape": "document", "group": "analytics"}
+  ],
+  "groups": [
+    {"id": "core", "label": "Redirect path"},
+    {"id": "analytics", "label": "Analytics"}
+  ],
+  "edges": [
+    {"from": "user", "to": "lb", "label": "GET /abc"},
+    {"from": "lb", "to": "app"},
+    {"from": "app", "to": "cache", "label": "lookup"},
+    {"from": "app", "to": "db", "label": "miss"},
+    {"from": "app", "to": "clicks", "label": "click", "style": "dashed"},
+    {"from": "clicks", "to": "stats"},
+    {"from": "stats", "to": "report"}
+  ],
+  "paper": {"seed": 12}
+}

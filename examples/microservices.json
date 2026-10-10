@@ -1,5 +1,5 @@
 {
-  "$schema": "../schema/architecture.schema.json",
+  "$schema": "../skills/penciled/schema/architecture.schema.json",
   "version": "0.1",
   "type": "architecture",
   "title": "Online shop",

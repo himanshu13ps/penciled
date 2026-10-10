@@ -1,19 +1,36 @@
 {
   "name": "penciled",
-  "version": "0.0.1",
-  "description": "Hand-drawn pencil-style diagrams from JSON",
-  "type": "module",
+  "version": "0.1.0",
+  "description": "Hand-drawn pencil-style architecture diagrams from JSON: an agent skill and CLI with no dependencies",
+  "keywords": [
+    "diagram",
+    "architecture",
+    "hand-drawn",
+    "sketch",
+    "pencil",
+    "svg",
+    "agent-skill",
+    "claude",
+    "skills"
+  ],
+  "homepage": "https://github.com/himanshu13ps/penciled#readme",
+  "bugs": "https://github.com/himanshu13ps/penciled/issues",
+  "repository": "github:himanshu13ps/penciled",
   "license": "MIT",
   "author": "Himanshu Shringarpure",
-  "repository": "github:himanshu13ps/penciled",
+  "type": "module",
   "bin": {
-    "penciled": "src/cli.js"
+    "penciled": "skills/penciled/src/cli.js"
   },
-  "exports": "./src/render.js",
+  "exports": {
+    ".": "./skills/penciled/src/render.js",
+    "./validate": "./skills/penciled/src/validate.js",
+    "./viewer": "./skills/penciled/src/viewer.js"
+  },
   "files": [
-    "src",
-    "fonts",
-    "schema"
+    "skills/penciled/",
+    "README.md",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=18"

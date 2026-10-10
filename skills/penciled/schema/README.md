@@ -59,6 +59,9 @@ node src/cli.js validate diagram.json          # human-readable report
 node src/cli.js validate diagram.json --json   # { valid, errors, warnings }
 ```
 
+(Paths are relative to this skill's folder, `skills/penciled/` in the repo.)
+```
+
 Rendering runs the same checks first: errors stop it, warnings are printed
 and drawing goes ahead. Add `--strict` to either command to fail on warnings
 too. Every problem has a `path` (where in the JSON), a `code` and a message

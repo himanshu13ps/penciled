@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/himanshu13ps/penciled/main/schema/architecture.schema.json",
+  "$id": "https://raw.githubusercontent.com/himanshu13ps/penciled/main/skills/penciled/schema/architecture.schema.json",
   "title": "penciled architecture diagram",
   "description": "Input for a hand-drawn pencil-style architecture diagram: nodes (boxes and other shapes), optional groups around them, and edges (arrows) between them.",
   "type": "object",

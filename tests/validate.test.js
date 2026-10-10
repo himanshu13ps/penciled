@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { execFileSync, spawnSync } from "node:child_process";
-import { validate } from "../src/validate.js";
+import { validate } from "../skills/penciled/src/validate.js";
 
 const dir = (p) => new URL(p, import.meta.url);
 const files = (p) => readdirSync(dir(p)).filter((f) => f.endsWith(".json"));
@@ -70,7 +70,7 @@ test("every message names a path and a code", () => {
   }
 });
 
-const cli = (args) => spawnSync(process.execPath, [new URL("../src/cli.js", import.meta.url).pathname, ...args], { encoding: "utf8" });
+const cli = (args) => spawnSync(process.execPath, [new URL("../skills/penciled/src/cli.js", import.meta.url).pathname, ...args], { encoding: "utf8" });
 
 test("cli: validate prints a report and sets the exit code", () => {
   const ok = cli(["validate", dir("../examples/minimal.json").pathname]);
@@ -92,6 +92,6 @@ test("cli: render refuses input with errors and --strict fails on warnings", () 
 });
 
 test("cli: renders to stdout", () => {
-  const out = execFileSync(process.execPath, [new URL("../src/cli.js", import.meta.url).pathname, dir("../examples/minimal.json").pathname], { encoding: "utf8" });
+  const out = execFileSync(process.execPath, [new URL("../skills/penciled/src/cli.js", import.meta.url).pathname, dir("../examples/minimal.json").pathname], { encoding: "utf8" });
   assert.match(out, /^<svg /);
 });

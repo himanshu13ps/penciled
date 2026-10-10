@@ -1,4 +1,4 @@
-"""Rebuild fonts/caveat.woff2 and fonts/caveat-metrics.json.
+"""Rebuild skills/penciled/fonts/caveat.woff2 and caveat-metrics.json.
 
 Dev-only; needs `pip install fonttools brotli`. Input is the variable
 Caveat[wght].ttf from https://github.com/google/fonts/tree/main/ofl/caveat
@@ -23,7 +23,7 @@ sub = Subsetter(opts)
 sub.populate(unicodes=UNICODES)
 sub.subset(font)
 font.flavor = "woff2"
-font.save("fonts/caveat.woff2")
+font.save("skills/penciled/fonts/caveat.woff2")
 
 cmap, hmtx = font.getBestCmap(), font["hmtx"]
 metrics = {
@@ -32,5 +32,5 @@ metrics = {
     "descender": font["hhea"].descent,
     "advance": {str(cp): hmtx[g][0] for cp, g in sorted(cmap.items())},
 }
-with open("fonts/caveat-metrics.json", "w") as f:
+with open("skills/penciled/fonts/caveat-metrics.json", "w") as f:
     json.dump(metrics, f, separators=(",", ":"))
