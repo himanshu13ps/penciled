@@ -207,6 +207,7 @@ td:first-child { white-space: nowrap; }
 .play { display: grid; grid-template-columns: minmax(300px, 460px) 1fr; gap: 20px; align-items: start; }
 .panel-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--ink-2); flex-wrap: wrap; }
 .panel-head .grow { flex: 1; }
+.saves { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 14px; color: var(--ink-2); }
 #preset { flex: 1; min-width: 0; }
 select { font: 14px var(--sans); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
 textarea#src { display: block; width: 100%; height: 600px; border: 0; resize: vertical; padding: 14px 16px; font-size: 12.5px; line-height: 1.6;
@@ -444,14 +445,14 @@ footer .logo { font-size: 26px; color: var(--ink); }
           <li><code>penciled diagram.json -o diagram.svg</code></li>
         </ul>
         <div class="sheet" id="svg-sample" style="margin-top:6px"></div>
-        <button class="btn small" id="svg-download" style="align-self:flex-start">Download this SVG</button>
+        <div class="saves" role="group" aria-label="Download the sample"><span>Download:</span><button class="btn small" id="sample-svg">SVG</button><button class="btn small" id="sample-png" title="Lossless, large: the paper grain doesn't compress">PNG</button><button class="btn small" id="sample-jpg" title="Much smaller, for sharing">JPG</button></div>
         <p style="margin-top:8px">Put it in a README like any image:</p>
 <pre>![Architecture](docs/architecture.svg)</pre>
         <p class="caption">Re-render after editing the JSON and the picture in your docs stays current. Keep the seed and it keeps its character.</p>
       </div>
       <div class="panel">
         <h3>Interactive viewer</h3>
-        <p>One offline HTML file with the renderer inside. Try it right here: press <b>Redraw</b>, switch the paper, scroll to zoom, save a PNG.</p>
+        <p>One offline HTML file with the renderer inside. Try it right here: press <b>Redraw</b>, switch the paper, scroll to zoom, save a PNG or JPG.</p>
         <div class="frame"><iframe src="viewer-demo.html" title="penciled interactive viewer showing the photo sharing app" loading="lazy"></iframe></div>
         <p class="caption"><code>penciled diagram.json -o diagram.html</code></p>
       </div>
@@ -464,7 +465,7 @@ footer .logo { font-size: 26px; color: var(--ink); }
   <div class="wrap">
     <p class="kicker">Playground</p>
     <h2>Edit the JSON, watch it redraw</h2>
-    <p class="sub">The real renderer and validator, running in your browser. Nothing is uploaded. Start from an example, change a label, add a node, switch the paper. When you like it, download the SVG.</p>
+    <p class="sub">The real renderer and validator, running in your browser. Nothing is uploaded. Start from an example, change a label, add a node, switch the paper. When you like it, download it as SVG, PNG or JPG.</p>
     <div class="play">
       <div class="panel">
         <div class="panel-head">
@@ -481,7 +482,7 @@ footer .logo { font-size: 26px; color: var(--ink); }
           <div class="seg" data-opt="direction" aria-label="Flow"><button data-v="LR" title="Left to right">→</button><button data-v="TB" title="Top to bottom">↓</button></div>
           <span class="grow"></span>
           <button class="btn small" id="redraw" title="A new hand-drawn take">↻ Redraw</button>
-          <button class="btn small dark" id="download">Download SVG</button>
+          <div class="saves" role="group" aria-label="Download"><button class="btn small dark" id="download">SVG</button><button class="btn small" id="download-png" title="Lossless, large: the paper grain doesn't compress">PNG</button><button class="btn small" id="download-jpg" title="Much smaller, for sharing">JPG</button></div>
         </div>
         <div class="preview"><div class="sheet" id="out"></div></div>
         <div class="status" id="status" role="status" aria-live="polite"></div>
@@ -526,7 +527,7 @@ footer .logo { font-size: 26px; color: var(--ink); }
       </div>
       <div class="panel">
         <h3><b>3</b>In your browser</h3>
-        <p>Use the playground on this page. Write or paste the JSON, pick a paper and pencil, and download the SVG. Nothing to install, nothing uploaded.</p>
+        <p>Use the playground on this page. Write or paste the JSON, pick a paper and pencil, and download SVG, PNG or JPG. Nothing to install, nothing uploaded.</p>
         <a class="btn dark" href="#playground" style="align-self:flex-start">Open the playground</a>
       </div>
     </div>
@@ -561,7 +562,7 @@ footer .logo { font-size: 26px; color: var(--ink); }
       <details><summary>Can I place things exactly where I want?</summary><div class="a"><p>Yes. Layout is automatic by default, but if every node has a <code>position</code>, penciled uses your positions as given. See the event pipeline in the gallery.</p></div></details>
       <details><summary>How do I get the same drawing every time?</summary><div class="a"><p>Set <code>paper.seed</code>. The same input and seed always produce the same drawing, so you can edit a label and re-render without the whole sketch changing character. In the viewer, save the JSON to keep the seed you liked.</p></div></details>
       <details><summary>Can I edit the drawing afterwards?</summary><div class="a"><p>Edit the JSON and render again; that's the intended way. The SVG is a normal vector file, so you can also open it in a vector editor, though it is made of many small pencil strokes.</p></div></details>
-      <details><summary>How big are the files?</summary><div class="a"><p>Usually 100 to 400 KB for an SVG and about 160 KB for the viewer. The paper grain and the embedded font are most of it. PNGs saved from the viewer are larger, because grain doesn't compress; use JPG for sharing.</p></div></details>
+      <details><summary>How big are the files?</summary><div class="a"><p>Usually 100 to 400 KB for an SVG and about 160 KB for the viewer. The paper grain and the embedded font are most of it. PNGs are larger, often several megabytes, because the paper grain doesn't compress; JPG is about a tenth of the size and fine for sharing.</p></div></details>
       <details><summary>What does it cost, and what's the licence?</summary><div class="a"><p>It's free and open source under the MIT licence. The handwriting font, Caveat, is under the SIL Open Font License.</p></div></details>
     </div>
   </div>
@@ -873,14 +874,37 @@ footer .logo { font-size: 26px; color: var(--ink); }
   const svgSample = EX.find((x) => x.name === "ci-pipeline").diagram;
   let svgSampleText = "";
   later($("svg-sample"), () => { svgSampleText = draw($("svg-sample"), svgSample, svgSample.paper?.seed ?? 1); });
-  function saveSvg(text, name) {
+  function saveBlob(blob, name) {
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([text.replace(/pc\d+-/g, "pc-")], { type: "image/svg+xml" }));
+    a.href = URL.createObjectURL(blob);
     a.download = name;
-    a.click();
+    document.body.append(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
-  $("svg-download").addEventListener("click", () => saveSvg(svgSampleText || P.render(svgSample, { seed: svgSample.paper?.seed ?? 1 }), "ci-pipeline.svg"));
+  // Downloads use the drawing's own filter ids, so the file stands alone.
+  const standalone = (svg) => svg.replace(/pc\d+-/g, "pc-");
+  function saveSvg(text, base) { saveBlob(new Blob([standalone(text)], { type: "image/svg+xml" }), base + ".svg"); }
+  // PNG and JPG: draw the SVG onto a canvas at twice its size, sharp enough
+  // for slides. The paper grain is kept, which makes PNGs large.
+  function saveRaster(text, base, type) {
+    const svg = standalone(text);
+    const m = svg.match(/<svg[^>]*\swidth="(\d+)"[^>]*\sheight="(\d+)"/);
+    const w = +m[1], h = +m[2], scale = 2;
+    const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas");
+      c.width = w * scale; c.height = h * scale;
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob((b) => saveBlob(b, base + (type === "image/png" ? ".png" : ".jpg")), type, 0.9);
+    };
+    img.src = url;
+  }
+  const sampleText = () => svgSampleText || P.render(svgSample, { seed: svgSample.paper?.seed ?? 1 });
+  $("sample-svg").addEventListener("click", () => saveSvg(sampleText(), "ci-pipeline"));
+  $("sample-png").addEventListener("click", () => saveRaster(sampleText(), "ci-pipeline", "image/png"));
+  $("sample-jpg").addEventListener("click", () => saveRaster(sampleText(), "ci-pipeline", "image/jpeg"));
 
   // ----------------------------------------------------------- 8. Playground
   const src = $("src"), out = $("out"), status = $("status");
@@ -931,7 +955,10 @@ footer .logo { font-size: 26px; color: var(--ink); }
     seg.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; state[seg.dataset.opt] = b.dataset.v; update(); });
   }
   $("redraw").addEventListener("click", () => { state.seed = (Math.random() * 2 ** 32) >>> 0; update(); });
-  $("download").addEventListener("click", () => { if (lastSvg) saveSvg(lastSvg, title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".svg"); });
+  const slug = () => title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "diagram";
+  $("download").addEventListener("click", () => { if (lastSvg) saveSvg(lastSvg, slug()); });
+  $("download-png").addEventListener("click", () => { if (lastSvg) saveRaster(lastSvg, slug(), "image/png"); });
+  $("download-jpg").addEventListener("click", () => { if (lastSvg) saveRaster(lastSvg, slug(), "image/jpeg"); });
   load("web-app");
 
   // -------------------------------------------------------------- 9. Gallery
