@@ -21,19 +21,24 @@ export const quad = (a, c, b) => (t) => {
   return { x: u * u * a.x + 2 * u * t * c.x + t * t * b.x, y: u * u * a.y + 2 * u * t * c.y + t * t * b.y };
 };
 
-// Smooth path through points (Catmull-Rom as cubic Béziers).
+// Smooth path through points (Catmull-Rom as cubic Béziers), written with
+// relative coordinates to keep the SVG small.
 function smoothPath(pts, closed) {
   const n = pts.length;
   const at = (i) => (closed ? pts[(i + n) % n] : pts[Math.max(0, Math.min(n - 1, i))]);
-  let d = `M${r1(pts[0].x)} ${r1(pts[0].y)}`;
+  let px = r1(pts[0].x), py = r1(pts[0].y);
+  let d = `M${px} ${py}`;
+  const rel = (v, o) => r1(v - o);
   const last = closed ? n : n - 1;
   for (let i = 0; i < last; i++) {
     const p0 = at(i - 1), p1 = at(i), p2 = at(i + 1), p3 = at(i + 2);
     const c1x = p1.x + (p2.x - p0.x) / 6, c1y = p1.y + (p2.y - p0.y) / 6;
     const c2x = p2.x - (p3.x - p1.x) / 6, c2y = p2.y - (p3.y - p1.y) / 6;
-    d += `C${r1(c1x)} ${r1(c1y)} ${r1(c2x)} ${r1(c2y)} ${r1(p2.x)} ${r1(p2.y)}`;
+    const ex = r1(p2.x), ey = r1(p2.y);
+    d += `c${rel(c1x, px)} ${rel(c1y, py)} ${rel(c2x, px)} ${rel(c2y, py)} ${rel(ex, px)} ${rel(ey, py)}`;
+    px = ex; py = ey;
   }
-  return d + (closed ? "Z" : "");
+  return (d + (closed ? "Z" : "")).replace(/ -/g, "-");
 }
 
 /**
@@ -73,7 +78,7 @@ export function strokeOutline(center, rng, options = {}) {
   const startShift = rng.range(-1, 1) * wobble;
   const endShift = rng.range(-1, 1) * wobble;
 
-  const samples = Math.max(10, Math.ceil(len / 5));
+  const samples = Math.max(6, Math.ceil(len / 8));
   const left = [], right = [];
   for (let i = 0; i <= samples; i++) {
     const u = i / samples;

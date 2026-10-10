@@ -1,0 +1,12 @@
+{ "version": "0.1", "type": "architecture", "title": "Event pipeline (manual positions)",
+  "nodes": [
+    { "id": "a", "label": "Producer", "position": { "x": 120, "y": 100 } },
+    { "id": "q", "label": "Events", "shape": "queue", "position": { "x": 380, "y": 100 } },
+    { "id": "b", "label": "Consumer A", "shape": "rounded", "position": { "x": 640, "y": 40 }, "group": "c" },
+    { "id": "d", "label": "Consumer B", "shape": "rounded", "position": { "x": 640, "y": 170 }, "group": "c" },
+    { "id": "f", "label": "Report", "shape": "document", "shade": "medium", "position": { "x": 380, "y": 280 } } ],
+  "groups": [ { "id": "c", "label": "Consumers", "shade": "light" } ],
+  "edges": [
+    { "from": "a", "to": "q", "label": "publish" }, { "from": "q", "to": "b" }, { "from": "q", "to": "d" },
+    { "from": "d", "to": "f", "label": "writes", "style": "dashed" }, { "from": "a", "to": "f", "arrow": "none" } ],
+  "paper": { "texture": "lined", "pencil": "HB", "seed": 9 } }

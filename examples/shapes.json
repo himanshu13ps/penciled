@@ -1,0 +1,15 @@
+{
+  "version": "0.1",
+  "type": "architecture",
+  "title": "Every shape",
+  "nodes": [
+    { "id": "box", "label": "box" },
+    { "id": "rounded", "label": "rounded", "shape": "rounded", "shade": "light" },
+    { "id": "document", "label": "document", "shape": "document" },
+    { "id": "database", "label": "database", "shape": "database", "shade": "medium" },
+    { "id": "queue", "label": "queue", "shape": "queue" },
+    { "id": "person", "label": "person", "shape": "person" },
+    { "id": "cloud", "label": "cloud", "shape": "cloud", "shade": "light" }
+  ],
+  "paper": { "texture": "grid", "seed": 11 }
+}

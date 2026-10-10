@@ -1,43 +1,235 @@
-// Shapes built from pencil strokes.
+// Node shapes built from pencil strokes.
+//
+// Each shape knows its size for a given label, and for a placed node gives:
+//   outline    polygon used to end arrows on the drawn edge
+//   shadeArea  polygon the shading fills
+//   label      centre of the label block
+//   draw()     the pencil strokes
 
-import { line, quad, pencilLine, strokeOutline } from "./stroke.js";
+import { line, pencilLine, strokeOutline } from "./stroke.js";
 import { GRAPHITE } from "./paper.js";
+import { clipToPolygon, ellipsePoints, insetPolygon, polyline, r1, rectPolygon } from "./geometry.js";
 
-const r1 = (n) => Math.round(n * 10) / 10;
+const PERSON_FIGURE = { width: 44, height: 66 };
 
-// A box drawn the way people draw one: four separate sides, each starting a
-// little before its corner and running a little past the next one, so the
-// corners cross or just miss.
-export function box(rect, rng, pencil) {
-  const { x, y, width: w, height: h } = rect;
+// Box-like shapes: each side is its own stroke that starts a little before
+// its corner and runs a little past the next one, so corners cross or just miss.
+function straightSides(pts, rng, pencil) {
   const j = () => rng.range(-1.5, 1.5);
-  const tl = { x: x + j(), y: y + j() }, tr = { x: x + w + j(), y: y + j() };
-  const br = { x: x + w + j(), y: y + h + j() }, bl = { x: x + j(), y: y + h + j() };
-  const sides = [[tl, tr], [tr, br], [br, bl], [bl, tl]];
-  // Start on a random side, as a hand would.
-  const start = rng.int(0, 3);
+  const p = pts.map((q) => ({ x: q.x + j(), y: q.y + j() }));
+  const start = rng.int(0, p.length - 1);
   let out = "";
-  for (let i = 0; i < 4; i++) {
-    const [a, b] = sides[(start + i) % 4];
-    out += pencilLine(line(a, b), rng, pencil, { overshoot: rng.range(3, 7), wobble: 0.8 });
+  for (let i = 0; i < p.length; i++) {
+    const k = (start + i) % p.length;
+    const a = p[k], b = p[(k + 1) % p.length];
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    out += pencilLine(line(a, b), rng, pencil, { overshoot: Math.min(rng.range(3, 7), len * 0.25), wobble: len < 30 ? 0.4 : 0.8 });
   }
   return out;
 }
 
-// Rectangle clipped against a line through `p` with direction `d`: returns the
-// entry and exit parameters, or null if the line misses.
-function clipLine(rect, p, d) {
-  let t0 = -Infinity, t1 = Infinity;
-  for (const [pos, dir, lo, hi] of [[p.x, d.x, rect.x, rect.x + rect.width], [p.y, d.y, rect.y, rect.y + rect.height]]) {
-    if (Math.abs(dir) < 1e-9) {
-      if (pos < lo || pos > hi) return null;
-      continue;
-    }
-    let a = (lo - pos) / dir, b = (hi - pos) / dir;
-    if (a > b) [a, b] = [b, a];
-    t0 = Math.max(t0, a); t1 = Math.min(t1, b);
+// Curved outlines: the loop is drawn in a few overlapping strokes, the way a
+// hand goes round a shape and lifts the pencil once or twice.
+function loopStrokes(pts, rng, pencil, pieces = 2) {
+  const loop = pts.concat(pts, [pts[0]]);
+  const path = polyline(loop);
+  const offset = rng.next();
+  let out = "";
+  for (let i = 0; i < pieces; i++) {
+    const s = (offset + i / pieces - rng.range(0.02, 0.05)) / 2;
+    const e = (offset + (i + 1) / pieces + rng.range(0.02, 0.05)) / 2;
+    out += pencilLine((u) => path(s + (e - s) * u), rng, pencil, { overshoot: 0, wobble: 0.7 });
   }
-  return t1 > t0 ? [t0, t1] : null;
+  return out;
+}
+
+// A small closed curve (head, cylinder end) drawn as one stroke that goes a
+// little past where it started.
+function ellipseStroke(cx, cy, rx, ry, rng, pencil) {
+  const a0 = rng.range(0, Math.PI * 2);
+  const pts = ellipsePoints(cx, cy, rx, ry, a0, a0 + Math.PI * 2 + rng.range(0.25, 0.5), 40);
+  return pencilLine(polyline(pts), rng, pencil, { overshoot: 0, wobble: 0.5, taperIn: 0.05, taperOut: 0.12 });
+}
+
+function arcStroke(cx, cy, rx, ry, a0, a1, rng, pencil) {
+  return pencilLine(polyline(ellipsePoints(cx, cy, rx, ry, a0, a1, 24)), rng, pencil, { overshoot: 1, wobble: 0.5 });
+}
+
+function roundedPolygon({ x, y, width: w, height: h }, r) {
+  const pts = [];
+  const corners = [[x + w - r, y + r, -Math.PI / 2], [x + w - r, y + h - r, 0], [x + r, y + h - r, Math.PI / 2], [x + r, y + r, Math.PI]];
+  for (const [cx, cy, a] of corners) pts.push(...ellipsePoints(cx, cy, r, r, a, a + Math.PI / 2, 6));
+  return pts;
+}
+
+const fitBox = ({ width, height }, minW = 110, minH = 62) => ({
+  width: Math.max(minW, Math.ceil(width + 44)),
+  height: Math.max(minH, Math.ceil(height + 30)),
+});
+
+export const SHAPES = {
+  box: {
+    size: (label) => fitBox(label),
+    place: (rect) => {
+      const outline = rectPolygon(rect);
+      return { outline, shadeArea: outline, label: centerOf(rect), draw: (rng, pencil) => straightSides(outline, rng, pencil) };
+    },
+  },
+
+  rounded: {
+    size: (label) => fitBox(label),
+    place: (rect) => {
+      const outline = roundedPolygon(rect, Math.min(14, rect.height / 3));
+      return { outline, shadeArea: outline, label: centerOf(rect), draw: (rng, pencil) => loopStrokes(outline, rng, pencil, 3) };
+    },
+  },
+
+  document: {
+    size: (label) => fitBox({ width: label.width + 10, height: label.height }),
+    place: (rect) => {
+      const { x, y, width: w, height: h } = rect;
+      const f = Math.min(16, h / 3);
+      const outline = [{ x, y }, { x: x + w - f, y }, { x: x + w, y: y + f }, { x: x + w, y: y + h }, { x, y: y + h }];
+      const c = centerOf(rect);
+      return {
+        outline,
+        shadeArea: outline,
+        label: { x: c.x - f / 4, y: c.y + f / 4 },
+        draw: (rng, pencil) =>
+          straightSides(outline, rng, pencil) +
+          pencilLine(line({ x: x + w - f, y: y + 1 }, { x: x + w - f + 1, y: y + f }), rng, pencil, { passes: 1, overshoot: 1, wobble: 0.3 }) +
+          pencilLine(line({ x: x + w - f + 1, y: y + f }, { x: x + w - 1, y: y + f }), rng, pencil, { passes: 1, overshoot: 1, wobble: 0.3 }),
+      };
+    },
+  },
+
+  database: {
+    size: (label) => {
+      const width = Math.max(110, Math.ceil(label.width + 44));
+      const ry = cylinderCap(width);
+      return { width, height: Math.max(84, Math.ceil(label.height + 30 + 2 * ry)) };
+    },
+    place: (rect) => {
+      const { x, y, width: w, height: h } = rect;
+      const rx = w / 2, ry = cylinderCap(w), cx = x + rx;
+      const top = y + ry, bottom = y + h - ry;
+      const outline = [...ellipsePoints(cx, top, rx, ry, Math.PI, Math.PI * 2, 16), ...ellipsePoints(cx, bottom, rx, ry, 0, Math.PI, 16)];
+      const shadeArea = [...ellipsePoints(cx, top, rx, ry, Math.PI, 0, 16), ...ellipsePoints(cx, bottom, rx, ry, 0, Math.PI, 16)];
+      return {
+        outline,
+        shadeArea,
+        label: { x: cx, y: (top + ry + bottom) / 2 },
+        draw: (rng, pencil) =>
+          ellipseStroke(cx, top, rx, ry, rng, pencil) +
+          pencilLine(line({ x, y: top }, { x, y: bottom }), rng, pencil, { overshoot: 2 }) +
+          pencilLine(line({ x: x + w, y: top }, { x: x + w, y: bottom }), rng, pencil, { overshoot: 2 }) +
+          arcStroke(cx, bottom, rx, ry, 0, Math.PI, rng, pencil),
+      };
+    },
+  },
+
+  queue: {
+    size: (label) => {
+      const height = Math.max(62, Math.ceil(label.height + 30));
+      const rx = queueCap(height);
+      return { width: Math.max(130, Math.ceil(label.width + 44 + 2 * rx)), height };
+    },
+    place: (rect) => {
+      const { x, y, width: w, height: h } = rect;
+      const ry = h / 2, rx = queueCap(h), cy = y + ry;
+      const left = x + rx, right = x + w - rx;
+      const outline = [...ellipsePoints(left, cy, rx, ry, Math.PI / 2, Math.PI * 1.5, 16), ...ellipsePoints(right, cy, rx, ry, -Math.PI / 2, Math.PI / 2, 16)];
+      const shadeArea = [...ellipsePoints(left, cy, rx, ry, Math.PI / 2, Math.PI * 1.5, 16), ...ellipsePoints(right, cy, rx, ry, Math.PI * 1.5, Math.PI / 2, 16)];
+      return {
+        outline,
+        shadeArea,
+        label: { x: (left + right - rx) / 2, y: cy },
+        draw: (rng, pencil) =>
+          ellipseStroke(right, cy, rx, ry, rng, pencil) +
+          pencilLine(line({ x: left, y }, { x: right, y }), rng, pencil, { overshoot: 2 }) +
+          pencilLine(line({ x: left, y: y + h }, { x: right, y: y + h }), rng, pencil, { overshoot: 2 }) +
+          arcStroke(left, cy, rx, ry, Math.PI / 2, Math.PI * 1.5, rng, pencil),
+      };
+    },
+  },
+
+  person: {
+    // A stick figure with its label written underneath.
+    size: (label) => ({
+      width: Math.max(PERSON_FIGURE.width + 16, Math.ceil(label.width + 12)),
+      height: Math.ceil(PERSON_FIGURE.height + 10 + label.height),
+    }),
+    place: (rect) => {
+      const cx = rect.x + rect.width / 2, top = rect.y;
+      const fig = { x: cx - PERSON_FIGURE.width / 2, y: top, width: PERSON_FIGURE.width, height: PERSON_FIGURE.height };
+      const headR = 9.5, neck = top + 2 * headR + 1, hip = top + 42, foot = top + PERSON_FIGURE.height;
+      return {
+        outline: rectPolygon(fig),
+        shadeArea: null,
+        label: { x: cx, y: (foot + 10 + rect.y + rect.height) / 2 },
+        draw: (rng, pencil) => {
+          const j = () => rng.range(-1.2, 1.2);
+          const s = (a, b) => pencilLine(line(a, b), rng, pencil, { passes: 1, overshoot: 1, wobble: 0.4 });
+          return ellipseStroke(cx + j() / 2, top + headR, headR, headR, rng, pencil) +
+            s({ x: cx + j(), y: neck }, { x: cx + j(), y: hip }) +
+            s({ x: cx - 17 + j(), y: neck + 12 + j() }, { x: cx + 17 + j(), y: neck + 10 + j() }) +
+            s({ x: cx, y: hip }, { x: cx - 13 + j(), y: foot + j() }) +
+            s({ x: cx, y: hip }, { x: cx + 13 + j(), y: foot + j() });
+        },
+      };
+    },
+  },
+
+  cloud: {
+    size: (label) => ({
+      width: Math.max(130, Math.ceil(label.width + 76)),
+      height: Math.max(84, Math.ceil(label.height + 54)),
+    }),
+    // Bumps are random, so the outline is made once per node and reused for
+    // drawing, shading and arrows.
+    place: (rect, rng) => {
+      const c = centerOf(rect);
+      const bump = 10;
+      const rx = rect.width / 2 - bump, ry = rect.height / 2 - bump;
+      const n = Math.max(7, Math.min(12, Math.round((Math.PI * (rx + ry)) / 42)));
+      const base = rng.range(0, Math.PI * 2);
+      const anchors = [];
+      for (let i = 0; i < n; i++) {
+        const a = base + ((i + rng.range(-0.2, 0.2)) / n) * Math.PI * 2;
+        anchors.push({ x: c.x + rx * Math.cos(a), y: c.y + ry * Math.sin(a) });
+      }
+      const outline = [];
+      for (let i = 0; i < n; i++) {
+        const a = anchors[i], b = anchors[(i + 1) % n];
+        const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+        const dx = mx - c.x, dy = my - c.y, dl = Math.hypot(dx, dy) || 1;
+        const h = bump * rng.range(1.5, 2.1);
+        const ctrl = { x: mx + (dx / dl) * h, y: my + (dy / dl) * h };
+        for (let k = 0; k < 8; k++) {
+          const t = k / 8, u = 1 - t;
+          outline.push({ x: u * u * a.x + 2 * u * t * ctrl.x + t * t * b.x, y: u * u * a.y + 2 * u * t * ctrl.y + t * t * b.y });
+        }
+      }
+      return {
+        outline,
+        shadeArea: ellipsePoints(c.x, c.y, rx + 2, ry + 2, 0, Math.PI * 2, 24),
+        label: c,
+        draw: (rng2, pencil) => loopStrokes(outline, rng2, pencil, 2),
+      };
+    },
+  },
+};
+
+function centerOf(rect) {
+  return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+}
+
+function cylinderCap(width) {
+  return Math.max(8, Math.min(15, width * 0.1));
+}
+
+function queueCap(height) {
+  return Math.max(8, Math.min(14, height * 0.18));
 }
 
 const SHADE = {
@@ -46,31 +238,50 @@ const SHADE = {
   dark: { spacing: 4.2, opacity: 0.6, smudge: 0.14, cross: true },
 };
 
+const pathOf = (poly) => "M" + poly.map((p) => `${r1(p.x)} ${r1(p.y)}`).join("L") + "Z";
+
+function bounds(poly) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const p of poly) {
+    x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y);
+    x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y);
+  }
+  return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
+}
+
 // Graphite shading: a soft finger smudge underneath, then quick diagonal
 // hatching that stops short of, or slightly crosses, the outline. If `clear`
 // is given, the shading is rubbed out behind it (where the label sits), the
 // way an artist lifts graphite with an eraser so text stays readable.
-export function shading(rect, level, rng, pencil, { id, clear } = {}) {
+export function shading(area, level, rng, pencil, { id, clear } = {}) {
   const s = SHADE[level];
-  if (!s) return "";
-  const inset = 3;
-  const inner = { x: rect.x + inset, y: rect.y + inset, width: rect.width - 2 * inset, height: rect.height - 2 * inset };
-  let out = `<rect x="${r1(inner.x + 2)}" y="${r1(inner.y + 2)}" width="${r1(inner.width - 4)}" height="${r1(inner.height - 4)}" rx="6" fill="${GRAPHITE}" opacity="${s.smudge}" filter="url(#pc-smudge)"/>`;
+  if (!s || !area) return "";
+  const inner = insetPolygon(area, 3);
+  let out = `<path d="${pathOf(insetPolygon(area, 6))}" fill="${GRAPHITE}" opacity="${s.smudge}" filter="url(#pc-smudge)"/>`;
   out += hatch(inner, rng, pencil, s, rng.range(52, 62));
   if (s.cross) out += hatch(inner, rng, pencil, { ...s, opacity: s.opacity * 0.7, spacing: s.spacing * 1.4 }, rng.range(-62, -52) + 180);
   if (!clear) return out;
   const m = `pc-clear-${id}`;
+  const b = bounds(area);
   const pad = 10;
-  return `<mask id="${m}" maskUnits="userSpaceOnUse" x="${r1(rect.x - pad)}" y="${r1(rect.y - pad)}" width="${r1(rect.width + 2 * pad)}" height="${r1(rect.height + 2 * pad)}">` +
-    `<rect x="${r1(rect.x - pad)}" y="${r1(rect.y - pad)}" width="${r1(rect.width + 2 * pad)}" height="${r1(rect.height + 2 * pad)}" fill="#fff"/>` +
+  const box = `x="${r1(b.x - pad)}" y="${r1(b.y - pad)}" width="${r1(b.width + 2 * pad)}" height="${r1(b.height + 2 * pad)}"`;
+  return `<mask id="${m}" maskUnits="userSpaceOnUse" ${box}><rect ${box} fill="#fff"/>` +
     `<rect x="${r1(clear.x)}" y="${r1(clear.y)}" width="${r1(clear.width)}" height="${r1(clear.height)}" rx="${r1(clear.height / 2)}" fill="#000" fill-opacity="${level === "light" ? 0.6 : 0.85}" filter="url(#pc-soft)" transform="rotate(${r1(rng.range(-3, 3))} ${r1(clear.x + clear.width / 2)} ${r1(clear.y + clear.height / 2)})"/>` +
     `</mask><g mask="url(#${m})">${out}</g>`;
 }
 
-function hatch(rect, rng, pencil, s, angleDeg) {
+// A large, soft tone for group backgrounds: smudge only, no hatching.
+export function tone(poly, level) {
+  const s = SHADE[level];
+  if (!s) return "";
+  return `<path d="${pathOf(insetPolygon(poly, 8))}" fill="${GRAPHITE}" opacity="${r1(s.smudge * 0.7 * 100) / 100}" filter="url(#pc-smudge)"/>`;
+}
+
+function hatch(poly, rng, pencil, s, angleDeg) {
   let out = "";
-  const diag = Math.hypot(rect.width, rect.height);
-  const cx = rect.x + rect.width / 2, cy = rect.y + rect.height / 2;
+  const b = bounds(poly);
+  const diag = Math.hypot(b.width, b.height);
+  const cx = b.x + b.width / 2, cy = b.y + b.height / 2;
   const base = (angleDeg * Math.PI) / 180;
   const nx = -Math.sin(base), ny = Math.cos(base);
   // The hand drifts: angle and spacing wander slowly rather than jumping.
@@ -80,66 +291,22 @@ function hatch(rect, rng, pencil, s, angleDeg) {
     const a = base + drift;
     const d = { x: Math.cos(a), y: Math.sin(a) };
     const p = { x: cx + nx * k, y: cy + ny * k };
-    const hit = clipLine(rect, p, d);
-    if (!hit) continue;
-    // Each end lands a bit inside or outside the edge.
-    const t0 = hit[0] + rng.range(-1, 4), t1 = hit[1] - rng.range(-1, 4);
-    if (t1 - t0 < 6) continue;
-    const a0 = { x: p.x + d.x * t0, y: p.y + d.y * t0 }, a1 = { x: p.x + d.x * t1, y: p.y + d.y * t1 };
-    // A quick flick of the wrist curves the stroke slightly.
-    const bend = rng.range(-0.04, 0.04) * (t1 - t0);
-    const c = { x: (a0.x + a1.x) / 2 - d.y * bend, y: (a0.y + a1.y) / 2 + d.x * bend };
-    const opacity = s.opacity * rng.range(0.65, 1.15);
-    out += `<path d="${strokeOutline(quad(a0, c, a1), rng, { width: pencil.width * rng.range(0.55, 0.8), overshoot: 0, wobble: 0.25, taperIn: 0.12, taperOut: 0.4 })}" fill-opacity="${r1(opacity * 100) / 100}"/>`;
-  }
-  return out;
-}
-
-// Point where the ray from the centre of `rect` towards `toward` leaves the
-// rectangle, pushed out by `gap`.
-export function edgePoint(rect, toward, gap) {
-  const cx = rect.x + rect.width / 2, cy = rect.y + rect.height / 2;
-  const dx = toward.x - cx, dy = toward.y - cy;
-  const len = Math.hypot(dx, dy) || 1;
-  const sx = dx === 0 ? Infinity : rect.width / 2 / Math.abs(dx);
-  const sy = dy === 0 ? Infinity : rect.height / 2 / Math.abs(dy);
-  const s = Math.min(sx, sy);
-  return { x: cx + dx * s + (dx / len) * gap, y: cy + dy * s + (dy / len) * gap };
-}
-
-// An arrow: a slightly bowed shaft and a head made of two flicks out from the tip.
-export function arrow(from, to, rng, pencil, { style = "solid", heads = "end" } = {}) {
-  const len = Math.hypot(to.x - from.x, to.y - from.y);
-  const nx = -(to.y - from.y) / len, ny = (to.x - from.x) / len;
-  const sag = rng.range(-0.04, 0.04) * len;
-  const ctrl = { x: (from.x + to.x) / 2 + nx * sag, y: (from.y + to.y) / 2 + ny * sag };
-  const shaft = quad(from, ctrl, to);
-
-  let out = "";
-  if (style === "dashed") {
-    const dash = 9, gap = 6;
-    for (let t = 0; t < len; t += dash + gap) {
-      const a = t / len, b = Math.min(1, (t + dash * rng.range(0.8, 1.15)) / len);
-      out += `<path d="${strokeOutline((u) => shaft(a + (b - a) * u), rng, { width: pencil.width, overshoot: 0, wobble: 0.3, taperIn: 0.15, taperOut: 0.3 })}" fill-opacity="${pencil.opacity}"/>`;
+    for (const hit of clipToPolygon(poly, p, d)) {
+      // Each end lands a bit inside or outside the edge.
+      const t0 = hit[0] + rng.range(-1, 4), t1 = hit[1] - rng.range(-1, 4);
+      if (t1 - t0 < 6) continue;
+      const a0 = { x: p.x + d.x * t0, y: p.y + d.y * t0 }, a1 = { x: p.x + d.x * t1, y: p.y + d.y * t1 };
+      // A quick flick of the wrist curves the stroke slightly.
+      const bend = rng.range(-0.04, 0.04) * (t1 - t0);
+      const c = { x: (a0.x + a1.x) / 2 - d.y * bend, y: (a0.y + a1.y) / 2 + d.x * bend };
+      const opacity = s.opacity * rng.range(0.65, 1.15);
+      const curve = (t) => {
+        const u = 1 - t;
+        return { x: u * u * a0.x + 2 * u * t * c.x + t * t * a1.x, y: u * u * a0.y + 2 * u * t * c.y + t * t * a1.y };
+      };
+      out += `<path d="${strokeOutline(curve, rng, { width: pencil.width * rng.range(0.55, 0.8), overshoot: 0, wobble: 0.25, taperIn: 0.12, taperOut: 0.4 })}" fill-opacity="${r1(opacity * 100) / 100}"/>`;
     }
-  } else {
-    out += pencilLine(shaft, rng, pencil, { overshoot: 0, wobble: 0.6, taperIn: 0.04, taperOut: 0.06 });
   }
-
-  const head = (tip, tangentFrom) => {
-    const ang = Math.atan2(tip.y - tangentFrom.y, tip.x - tangentFrom.x);
-    let s = "";
-    for (const side of [-1, 1]) {
-      const spread = rng.range(0.38, 0.5) * side;
-      const size = rng.range(14, 18);
-      const wing = { x: tip.x - Math.cos(ang + spread) * size, y: tip.y - Math.sin(ang + spread) * size };
-      // Pencil lands at the tip and flicks outwards.
-      s += pencilLine(line(tip, wing), rng, pencil, { passes: 1, overshoot: 1, wobble: 0.3, taperIn: 0.02, taperOut: 0.45, width: 1.15 });
-    }
-    return s;
-  };
-  if (heads === "end" || heads === "both") out += head(to, shaft(0.97));
-  if (heads === "start" || heads === "both") out += head(from, shaft(0.03));
   return out;
 }
 

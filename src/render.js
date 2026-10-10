@@ -1,92 +1,45 @@
 // Diagram JSON -> pencil-drawn SVG.
-//
-// M2 scope: box nodes, arrows, labels, shading, paper and eraser marks.
-// Every node is drawn as a box and nodes are placed in a single row or column;
-// other shapes and real layout come in M3.
 
 import { createRandom } from "./random.js";
-import { PENCILS } from "./stroke.js";
+import { PENCILS, strokeOutline } from "./stroke.js";
 import { GRAPHITE, background, defs } from "./paper.js";
-import { arrow, box, edgePoint, eraserMark, shading } from "./shapes.js";
-import { FONT_FAMILY, escapeXml, fontFaceCss, measureLines } from "./text.js";
+import { SHAPES, eraserMark, shading, tone } from "./shapes.js";
+import { drawArrow, labelSpot, route } from "./edges.js";
+import { layout } from "./layout.js";
+import { ellipsePoints, polyline, quadPoint, r1 } from "./geometry.js";
+import { FONT_FAMILY, escapeXml, fontFaceCss, measureLines, textWidth } from "./text.js";
 
 const LABEL_SIZE = 24;
 const SUBLABEL_SIZE = 17;
 const EDGE_LABEL_SIZE = 18;
+const GROUP_LABEL_SIZE = 20;
 const TITLE_SIZE = 32;
-const MARGIN = 60;
-const GAP = 150;
+const MARGIN = 50;
 
-const r1 = (n) => Math.round(n * 10) / 10;
-
-function nodeSize(node) {
-  if (node.size) return { width: node.size.width, height: node.size.height };
+function labelBlock(node) {
   const lines = node.label.split("\n");
-  let w = measureLines(lines, LABEL_SIZE);
-  let h = lines.length * LABEL_SIZE * 1.05;
+  let width = measureLines(lines, LABEL_SIZE);
+  let height = lines.length * LABEL_SIZE * 1.05;
   if (node.sublabel) {
-    w = Math.max(w, measureLines([node.sublabel], SUBLABEL_SIZE));
-    h += SUBLABEL_SIZE * 1.2;
+    width = Math.max(width, measureLines([node.sublabel], SUBLABEL_SIZE));
+    height += SUBLABEL_SIZE * 1.2;
   }
-  return { width: Math.max(110, Math.ceil(w + 44)), height: Math.max(62, Math.ceil(h + 30)) };
+  return { lines, width, height };
 }
 
-function layout(diagram) {
-  const rects = new Map();
-  const vertical = diagram.direction === "TB";
-  const top = MARGIN + (diagram.title ? TITLE_SIZE * 1.6 : 0);
-  if (diagram.nodes.every((n) => n.position)) {
-    for (const n of diagram.nodes) {
-      const s = nodeSize(n);
-      rects.set(n.id, { x: n.position.x - s.width / 2, y: n.position.y - s.height / 2 + top - MARGIN, ...s });
-    }
-  } else {
-    const sizes = diagram.nodes.map(nodeSize);
-    const cross = Math.max(...sizes.map((s) => (vertical ? s.width : s.height)));
-    let along = MARGIN;
-    diagram.nodes.forEach((n, i) => {
-      const s = sizes[i];
-      rects.set(n.id, vertical
-        ? { x: MARGIN + (cross - s.width) / 2, y: top + along - MARGIN, ...s }
-        : { x: along, y: top + (cross - s.height) / 2, ...s });
-      along += (vertical ? s.height : s.width) + GAP;
-    });
-  }
-  let maxX = 0, maxY = 0;
-  for (const r of rects.values()) {
-    maxX = Math.max(maxX, r.x + r.width);
-    maxY = Math.max(maxY, r.y + r.height);
-  }
-  return { rects, width: Math.ceil(maxX + MARGIN), height: Math.ceil(maxY + MARGIN) };
-}
-
-// Area the label covers, padded a little; shading is rubbed out here.
-function labelBox(node, rect) {
-  const lines = node.label.split("\n");
-  let w = measureLines(lines, LABEL_SIZE);
-  let h = lines.length * LABEL_SIZE * 1.05;
-  if (node.sublabel) {
-    w = Math.max(w, measureLines([node.sublabel], SUBLABEL_SIZE));
-    h += SUBLABEL_SIZE * 1.2;
-  }
-  w = Math.min(w + 22, rect.width - 8);
-  h = Math.min(h + 8, rect.height - 8);
-  return { x: rect.x + (rect.width - w) / 2, y: rect.y + (rect.height - h) / 2, width: w, height: h };
-}
+const shapeOf = (node) => SHAPES[node.shape ?? "box"] ?? SHAPES.box;
 
 function text(x, y, str, size, rng, extra = "") {
   const rot = r1(rng.range(-1.5, 1.5));
   return `<text x="${r1(x)}" y="${r1(y)}" font-size="${size}" transform="rotate(${rot} ${r1(x)} ${r1(y)})"${extra}>${escapeXml(str)}</text>`;
 }
 
-function nodeLabel(node, rect, rng) {
-  const lines = node.label.split("\n");
+function nodeLabel(node, block, at, rng) {
   const lh = LABEL_SIZE * 1.05;
-  const block = lines.length * lh + (node.sublabel ? SUBLABEL_SIZE * 1.2 : 0);
-  const cx = rect.x + rect.width / 2 + rng.range(-2, 2);
-  let y = rect.y + (rect.height - block) / 2 + LABEL_SIZE * 0.78;
+  const cx = at.x + rng.range(-2, 2);
+  let y = at.y - block.height / 2 + LABEL_SIZE * 0.78;
   let out = "";
-  for (const l of lines) {
+  for (const l of block.lines) {
     out += text(cx, y, l, LABEL_SIZE, rng);
     y += lh;
   }
@@ -94,53 +47,117 @@ function nodeLabel(node, rect, rng) {
   return out;
 }
 
+// A group outline: a rounded rectangle drawn in quick, uneven dashes.
+function groupOutline(rect, rng, pencil) {
+  const r = 12;
+  const { x, y, width: w, height: h } = rect;
+  const pts = [];
+  for (const [cx, cy, a] of [[x + w - r, y + r, -Math.PI / 2], [x + w - r, y + h - r, 0], [x + r, y + h - r, Math.PI / 2], [x + r, y + r, Math.PI]]) {
+    pts.push(...ellipsePoints(cx, cy, r, r, a, a + Math.PI / 2, 6));
+  }
+  pts.push(pts[0]);
+  const path = polyline(pts);
+  const total = 2 * (w + h);
+  let out = "";
+  for (let d = rng.range(0, 8); d < total; ) {
+    const dash = rng.range(10, 16), gap = rng.range(6, 9);
+    const a = d / total, b = Math.min(1, (d + dash) / total);
+    out += `<path d="${strokeOutline((u) => path(a + (b - a) * u), rng, { width: pencil.width * 0.85, overshoot: 0, wobble: 0.35, taperIn: 0.15, taperOut: 0.3 })}" fill-opacity="${r1(pencil.opacity * 85) / 100}"/>`;
+    d += dash + gap;
+  }
+  return out;
+}
+
 export function render(diagram, options = {}) {
   const seed = options.seed ?? diagram.paper?.seed ?? Math.floor(Math.random() * 2 ** 32);
   const rng = createRandom(seed);
   const pencil = PENCILS[diagram.paper?.pencil ?? "2B"];
-  const { rects, width, height } = layout(diagram);
 
-  let shade = "", lines = "", labels = "", erased = "";
+  const blocks = new Map(diagram.nodes.map((n) => [n.id, labelBlock(n)]));
+  const sizes = new Map(diagram.nodes.map((n) => [n.id, n.size ?? shapeOf(n).size(blocks.get(n.id))]));
+  const titleRoom = diagram.title ? TITLE_SIZE * 1.8 : 0;
+  const { rects, groups, width: layoutWidth, height } = layout(diagram, sizes, { top: titleRoom, margin: MARGIN });
+  const width = diagram.title ? Math.max(layoutWidth, Math.ceil(textWidth(diagram.title, TITLE_SIZE) + 2 * MARGIN)) : layoutWidth;
 
-  for (const n of diagram.nodes) {
-    const r = rects.get(n.id);
-    if (n.shade && n.shade !== "none") shade += shading(r, n.shade, rng, pencil, { id: n.id, clear: labelBox(n, r) });
-    lines += box(r, rng, pencil);
-    labels += nodeLabel(n, r, rng);
+  const placed = new Map();
+  for (const n of diagram.nodes) placed.set(n.id, { rect: rects.get(n.id), ...shapeOf(n).place(rects.get(n.id), rng) });
+
+  let back = "", shade = "", lines = "", labels = "", erased = "";
+
+  const groupList = (diagram.groups ?? []).filter((g) => groups.has(g.id));
+  // Group labels are kept clear of arrows and arrow labels.
+  const groupLabels = groupList.map((g) => {
+    const gr = groups.get(g.id);
+    return { rect: { x: gr.x + 8, y: gr.y + 4, width: textWidth(g.label, GROUP_LABEL_SIZE) + 14, height: GROUP_LABEL_SIZE + 6 } };
+  });
+  for (const g of groupList) {
+    const gr = groups.get(g.id);
+    if (g.shade && g.shade !== "none") {
+      back += tone([{ x: gr.x, y: gr.y }, { x: gr.x + gr.width, y: gr.y }, { x: gr.x + gr.width, y: gr.y + gr.height }, { x: gr.x, y: gr.y + gr.height }], g.shade);
+    }
+    lines += groupOutline(gr, rng, pencil);
+    labels += text(gr.x + 14, gr.y + GROUP_LABEL_SIZE + 4, g.label.replace(/\n/g, " "), GROUP_LABEL_SIZE, rng, ` text-anchor="start" fill-opacity="0.8"`);
   }
 
-  for (const e of diagram.edges ?? []) {
-    const a = rects.get(e.from), b = rects.get(e.to);
-    if (!a || !b || a === b) continue;
-    const ac = { x: a.x + a.width / 2, y: a.y + a.height / 2 }, bc = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
-    const from = edgePoint(a, bc, rng.range(6, 10)), to = edgePoint(b, ac, rng.range(5, 8));
-    lines += arrow(from, to, rng, pencil, { style: e.style, heads: e.arrow ?? "end" });
+  for (const n of diagram.nodes) {
+    const p = placed.get(n.id);
+    const block = blocks.get(n.id);
+    if (n.shade && n.shade !== "none" && p.shadeArea) {
+      const clear = { x: p.label.x - block.width / 2 - 11, y: p.label.y - block.height / 2 - 4, width: block.width + 22, height: block.height + 8 };
+      shade += shading(p.shadeArea, n.shade, rng, pencil, { id: n.id, clear });
+    }
+    lines += p.draw(rng, pencil);
+    labels += nodeLabel(n, block, p.label, rng);
+  }
+
+  // Arrows between the same two nodes are spread apart.
+  const edges = (diagram.edges ?? []).filter((e) => placed.has(e.from) && placed.has(e.to) && e.from !== e.to);
+  const pairKey = (e) => (e.from < e.to ? `${e.from}\u0000${e.to}` : `${e.to}\u0000${e.from}`);
+  const pairs = new Map();
+  for (const e of edges) pairs.set(pairKey(e), [...(pairs.get(pairKey(e)) ?? []), e]);
+  const nodeRects = [...rects.values()];
+  const extents = [];
+  const takenLabels = [];
+  for (const e of edges) {
+    const group = pairs.get(pairKey(e));
+    const i = group.indexOf(e);
+    const flip = e.from < e.to ? 1 : -1;
+    const bias = group.length > 1 ? (i - (group.length - 1) / 2) * 40 * flip : 0;
+    const others = [...diagram.nodes.filter((n) => n.id !== e.from && n.id !== e.to).map((n) => placed.get(n.id)), ...groupLabels];
+    const path = route(placed.get(e.from), placed.get(e.to), others, bias, rng);
+    lines += drawArrow(path, rng, pencil, { style: e.style, heads: e.arrow ?? "end" });
+    for (let t = 0; t <= 1; t += 0.1) extents.push(quadPoint(path.from, path.ctrl, path.to, t));
     if (e.label) {
-      const len = Math.hypot(to.x - from.x, to.y - from.y);
-      const ny = (to.x - from.x) / len;
-      const nx = -(to.y - from.y) / len;
-      // Put the label on the upper side of the arrow.
-      const s = ny > 0 || (ny === 0 && nx > 0) ? -1 : 1;
-      labels += text((from.x + to.x) / 2 + nx * s * 14, (from.y + to.y) / 2 + ny * s * 14, e.label, EDGE_LABEL_SIZE, rng, ` fill-opacity="0.85"`);
+      const w = textWidth(e.label, EDGE_LABEL_SIZE);
+      const at = labelSpot(path, w, EDGE_LABEL_SIZE, [...nodeRects, ...groupLabels.map((l) => l.rect), ...takenLabels], [...groups.values()]);
+      takenLabels.push({ x: at.x - w / 2, y: at.y - EDGE_LABEL_SIZE * 0.8, width: w, height: EDGE_LABEL_SIZE });
+      labels += text(at.x, at.y, e.label, EDGE_LABEL_SIZE, rng, ` fill-opacity="0.85"`);
     }
   }
 
   if (diagram.paper?.eraserMarks ?? true) {
-    const nodes = diagram.nodes;
-    const count = Math.min(nodes.length, rng.int(1, 2));
-    for (let i = 0; i < count; i++) erased += eraserMark(rects.get(nodes[rng.int(0, nodes.length - 1)].id), rng, pencil);
+    const count = Math.min(diagram.nodes.length, rng.int(1, 2));
+    for (let i = 0; i < count; i++) erased += eraserMark(rects.get(diagram.nodes[rng.int(0, diagram.nodes.length - 1)].id), rng, pencil);
   }
 
-  if (diagram.title) {
-    labels += text(width / 2, MARGIN + TITLE_SIZE * 0.6, diagram.title, TITLE_SIZE, rng);
-  }
+  if (diagram.title) labels += text(width / 2, MARGIN + TITLE_SIZE * 0.7, diagram.title, TITLE_SIZE, rng);
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  // Bent arrows and their labels can reach past the nodes: grow the page so
+  // nothing is cut off.
+  for (const b of takenLabels) extents.push({ x: b.x, y: b.y }, { x: b.x + b.width, y: b.y + b.height });
+  const pad = MARGIN * 0.6;
+  const minX = Math.min(0, ...extents.map((p) => p.x - pad)), minY = Math.min(0, ...extents.map((p) => p.y - pad));
+  const maxX = Math.max(width, ...extents.map((p) => p.x + pad)), maxY = Math.max(height, ...extents.map((p) => p.y + pad));
+  const vb = `${r1(minX)} ${r1(minY)} ${Math.ceil(maxX - minX)} ${Math.ceil(maxY - minY)}`;
+  const W = Math.ceil(maxX - minX), H = Math.ceil(maxY - minY);
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="${vb}">
 <style>${fontFaceCss()} text{font-family:${FONT_FAMILY},cursive;text-anchor:middle;fill:${GRAPHITE}}</style>
 <defs>${defs(seed)}</defs>
-${background(width, height)}
-<g fill="${GRAPHITE}">${erased}</g>
+<g transform="translate(${r1(minX)} ${r1(minY)})">${background(W, H, diagram.paper?.texture)}</g>
+<g fill="${GRAPHITE}">${back}${erased}</g>
 <g fill="${GRAPHITE}" filter="url(#pc-graphite)">${shade}${lines}${labels}</g>
 </svg>
 `;
 }
+

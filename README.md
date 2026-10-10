@@ -4,10 +4,11 @@ An agent skill that turns a small JSON description into a diagram that looks
 drawn by hand with a graphite pencil on paper: tapered, wobbly strokes,
 layered passes, soft shading, paper grain and the odd eraser smudge.
 
-![Two hand-drawn boxes joined by an arrow labelled HTTPS](examples/pencil-test.jpg)
+![A hand-drawn architecture diagram of a photo sharing app: a user, a CDN, an API server, a job queue, a worker, a database and object storage, inside dashed AWS, Backend and Data outlines](examples/web-app.jpg)
 
-> Status: early work (v0.1 in progress). The pencil renderer works for boxes
-> and arrows; other shapes, groups and real layout are next.
+> Status: early work (v0.1 in progress). All seven shapes, groups, automatic
+> layout, shading and paper textures work. The layout validator, HTML viewer
+> and packaging as an agent skill are next.
 
 ## Try it
 
@@ -19,6 +20,18 @@ node src/cli.js examples/pencil-test.json -o diagram.svg
 
 Open `diagram.svg` in a browser. Add `--seed 123` for a different take on
 the same drawing; the same seed always gives the same result.
+
+More inputs, each with its rendered SVG
+and a JPEG preview, are in [`examples/`](examples/):
+
+| Example | Shows |
+|---------|-------|
+| [`web-app`](examples/web-app.jpg) | Groups, nesting, top-to-bottom flow |
+| [`shapes`](examples/shapes.jpg) | All seven shapes on grid paper |
+| [`event-pipeline`](examples/event-pipeline.jpg) | Manual positions, lined paper, HB pencil |
+| [`pencil-variants`](examples/pencil-variants.jpg) | 4B pencil, shading levels, dashed and two-way arrows |
+
+The input format is described in [`schema/README.md`](schema/README.md).
 
 ## What it does (planned for v0.1)
 

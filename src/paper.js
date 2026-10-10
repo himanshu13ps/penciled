@@ -34,14 +34,38 @@ export function defs(seed) {
   <feColorMatrix in="coarse" type="matrix" values="0 0 0 0 0.5 0 0 0 0 0.45 0 0 0 0 0.35 0.3 0 0 0 -0.1" result="blotch"/>
   <feMerge><feMergeNode in="blotch"/><feMergeNode in="tooth"/></feMerge>
 </filter>
+<filter id="pc-print" color-interpolation-filters="sRGB">
+  <feTurbulence type="fractalNoise" baseFrequency="0.02 0.6" numOctaves="2" seed="${s + 5}" result="n"/>
+  <feColorMatrix in="n" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.6 0 0 0 -0.2" result="mask"/>
+  <feComposite in="SourceGraphic" in2="mask" operator="in"/>
+</filter>
 <radialGradient id="pc-vignette" cx="50%" cy="45%" r="75%">
   <stop offset="60%" stop-color="#8a7f66" stop-opacity="0"/>
   <stop offset="100%" stop-color="#8a7f66" stop-opacity="0.14"/>
 </radialGradient>`;
 }
 
-export function background(width, height) {
+// Printed ruling for lined and grid paper: faint blue, slightly uneven in
+// strength the way cheap print is, with a red margin on lined paper.
+function ruling(width, height, texture) {
+  if (texture === "lined") {
+    let d = "";
+    for (let y = 72; y < height; y += 30) d += `M0 ${y}H${width}`;
+    return `<path d="${d}" stroke="#7d9cc4" stroke-width="0.9" stroke-opacity="0.35" fill="none" filter="url(#pc-print)"/>` +
+      `<path d="M58 0V${height}" stroke="#d07070" stroke-width="1" stroke-opacity="0.4" fill="none" filter="url(#pc-print)"/>`;
+  }
+  if (texture === "grid") {
+    let d = "";
+    for (let x = 20; x < width; x += 20) d += `M${x} 0V${height}`;
+    for (let y = 20; y < height; y += 20) d += `M0 ${y}H${width}`;
+    return `<path d="${d}" stroke="#7d9cc4" stroke-width="0.7" stroke-opacity="0.28" fill="none" filter="url(#pc-print)"/>`;
+  }
+  return "";
+}
+
+export function background(width, height, texture = "plain") {
   return `<rect width="${width}" height="${height}" fill="${PAPER}"/>
+${ruling(width, height, texture)}
 <rect width="${width}" height="${height}" filter="url(#pc-paper)"/>
 <rect width="${width}" height="${height}" fill="url(#pc-vignette)"/>`;
 }

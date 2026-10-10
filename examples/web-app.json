@@ -3,7 +3,7 @@
   "version": "0.1",
   "type": "architecture",
   "title": "Photo sharing app",
-  "direction": "LR",
+  "direction": "TB",
   "nodes": [
     { "id": "user", "label": "User", "shape": "person" },
     { "id": "cdn", "label": "CDN", "shape": "cloud" },
