@@ -22,6 +22,7 @@ src/        validator and renderer
 examples/   sample inputs and rendered outputs
 fonts/      embedded handwriting font (open license)
 tests/      tests
+specs/      plan and design notes
 ```
 
 ## Roadmap
