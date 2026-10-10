@@ -1,0 +1,12 @@
+{
+  "version": "0.1",
+  "type": "architecture",
+  "nodes": [
+    { "id": "client", "label": "Browser" },
+    { "id": "api", "label": "API server", "sublabel": "Node.js", "shade": "light" }
+  ],
+  "edges": [
+    { "from": "client", "to": "api", "label": "HTTPS" }
+  ],
+  "paper": { "pencil": "2B", "seed": 7 }
+}

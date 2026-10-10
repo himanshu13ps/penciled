@@ -1,0 +1,9 @@
+{ "version": "0.1", "type": "architecture", "title": "Pencil variants",
+  "nodes": [
+    { "id": "a", "label": "Queue", "shade": "medium" },
+    { "id": "b", "label": "Worker\npool", "shade": "dark" },
+    { "id": "c", "label": "Cache", "sublabel": "Redis" } ],
+  "edges": [
+    { "from": "a", "to": "b", "label": "async", "style": "dashed" },
+    { "from": "b", "to": "c", "label": "get/set", "arrow": "both" } ],
+  "paper": { "pencil": "4B", "seed": 3 } }

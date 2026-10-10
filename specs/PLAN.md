@@ -40,4 +40,5 @@ grain and the odd eraser mark.
 
 - M0: done
 - M1: done (schema/architecture.schema.json, examples/, tests/fixtures/invalid/)
-- M2: next
+- M2: built, awaiting review (examples/pencil-test.jpg, examples/pencil-variants.jpg)
+- M3: next
