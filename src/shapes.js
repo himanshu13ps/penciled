@@ -271,10 +271,10 @@ export function shading(area, level, rng, pencil, { id, clear } = {}) {
 }
 
 // A large, soft tone for group backgrounds: smudge only, no hatching.
-export function tone(poly, level) {
+export function tone(poly, level, strength = 1) {
   const s = SHADE[level];
   if (!s) return "";
-  return `<path d="${pathOf(insetPolygon(poly, 8))}" fill="${GRAPHITE}" opacity="${r1(s.smudge * 0.7 * 100) / 100}" filter="url(#pc-smudge)"/>`;
+  return `<path d="${pathOf(insetPolygon(poly, 8))}" fill="${GRAPHITE}" opacity="${r1(s.smudge * 0.7 * strength * 1000) / 1000}" filter="url(#pc-smudge)"/>`;
 }
 
 function hatch(poly, rng, pencil, s, angleDeg) {

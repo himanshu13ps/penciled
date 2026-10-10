@@ -83,7 +83,7 @@ test("lined and grid paper add ruling", () => {
 
 test("paper styles change the paper colour", () => {
   const base = { version: "0.1", type: "architecture", nodes: [{ id: "a", label: "A" }] };
-  assert.match(render(base, { seed: 1 }), /fill="#f7f4ec"/);
-  assert.match(render({ ...base, paper: { style: "clean" } }, { seed: 1 }), /fill="#fbfaf7"/);
+  assert.match(render(base, { seed: 1 }), /fill="#fbfaf7"/);
+  assert.match(render({ ...base, paper: { style: "aged" } }, { seed: 1 }), /fill="#f7f4ec"/);
   assert.match(render({ ...base, paper: { style: "bright" } }, { seed: 1 }), /fill="#fefefe"/);
 });

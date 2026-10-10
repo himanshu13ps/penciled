@@ -72,7 +72,7 @@ export function render(diagram, options = {}) {
   const seed = options.seed ?? diagram.paper?.seed ?? Math.floor(Math.random() * 2 ** 32);
   const rng = createRandom(seed);
   const pencil = PENCILS[diagram.paper?.pencil ?? "2B"];
-  const paperStyle = PAPER_STYLES[options.paperStyle ?? diagram.paper?.style ?? "aged"] ?? PAPER_STYLES.aged;
+  const paperStyle = PAPER_STYLES[options.paperStyle ?? diagram.paper?.style ?? "clean"] ?? PAPER_STYLES.clean;
 
   const blocks = new Map(diagram.nodes.map((n) => [n.id, labelBlock(n)]));
   const sizes = new Map(diagram.nodes.map((n) => [n.id, n.size ?? shapeOf(n).size(blocks.get(n.id))]));
@@ -94,7 +94,7 @@ export function render(diagram, options = {}) {
   for (const g of groupList) {
     const gr = groups.get(g.id);
     if (g.shade && g.shade !== "none") {
-      back += tone([{ x: gr.x, y: gr.y }, { x: gr.x + gr.width, y: gr.y }, { x: gr.x + gr.width, y: gr.y + gr.height }, { x: gr.x, y: gr.y + gr.height }], g.shade);
+      back += tone([{ x: gr.x, y: gr.y }, { x: gr.x + gr.width, y: gr.y }, { x: gr.x + gr.width, y: gr.y + gr.height }, { x: gr.x, y: gr.y + gr.height }], g.shade, paperStyle.groupTone);
     }
     lines += groupOutline(gr, rng, pencil);
     labels += text(gr.x + 14, gr.y + GROUP_LABEL_SIZE + 4, g.label.replace(/\n/g, " "), GROUP_LABEL_SIZE, rng, ` text-anchor="start" fill-opacity="0.8"`);

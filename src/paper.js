@@ -1,18 +1,18 @@
 // Paper and graphite: SVG filters and the page background.
 
 export const GRAPHITE = "#34343a";
-// Paper styles. "aged" is warm cream with blotches and darker edges; "clean"
-// is near-white sketchbook paper with only a fine tooth; "bright" is crisp
-// printer paper.
+// Paper styles. "clean" (the default) is near-white sketchbook paper with
+// only a fine tooth; "aged" is warm cream with blotches and darker edges; "bright"
+// is crisp printer paper.
 export const PAPER_STYLES = {
-  aged: { color: "#f7f4ec", tooth: [0.45, -0.17], toothTint: [0.4, 0.38, 0.33], blotch: [0.3, -0.1], vignette: 0.14 },
-  clean: { color: "#fbfaf7", tooth: [0.32, -0.13], toothTint: [0.42, 0.42, 0.42], blotch: null, vignette: 0.04 },
-  bright: { color: "#fefefe", tooth: [0.22, -0.09], toothTint: [0.45, 0.45, 0.47], blotch: null, vignette: 0 },
+  aged: { color: "#f7f4ec", tooth: [0.45, -0.17], toothTint: [0.4, 0.38, 0.33], blotch: [0.3, -0.1], vignette: 0.14, groupTone: 1 },
+  clean: { color: "#fbfaf7", tooth: [0.32, -0.13], toothTint: [0.42, 0.42, 0.42], blotch: null, vignette: 0.04, groupTone: 0.5 },
+  bright: { color: "#fefefe", tooth: [0.22, -0.09], toothTint: [0.45, 0.45, 0.47], blotch: null, vignette: 0, groupTone: 0.45 },
 };
 
 // Filters are defined once per drawing. Turbulence seeds come from the
 // drawing seed so grain is reproducible too.
-export function defs(seed, style = PAPER_STYLES.aged) {
+export function defs(seed, style = PAPER_STYLES.clean) {
   const s = seed % 1000;
   const [tr, tg, tb] = style.toothTint;
   return `
@@ -71,7 +71,7 @@ function ruling(width, height, texture) {
   return "";
 }
 
-export function background(width, height, texture = "plain", style = PAPER_STYLES.aged) {
+export function background(width, height, texture = "plain", style = PAPER_STYLES.clean) {
   return `<rect width="${width}" height="${height}" fill="${style.color}"/>
 ${ruling(width, height, texture)}
 <rect width="${width}" height="${height}" filter="url(#pc-paper)"/>

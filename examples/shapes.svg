@@ -22,10 +22,7 @@
 </filter>
 <filter id="pc-paper" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
   <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="14" result="fine"/>
-  <feColorMatrix in="fine" type="matrix" values="0 0 0 0 0.4 0 0 0 0 0.38 0 0 0 0 0.33 0.45 0 0 0 -0.17" result="tooth"/>
-  <feTurbulence type="fractalNoise" baseFrequency="0.006" numOctaves="3" seed="15" result="coarse"/>
-  <feColorMatrix in="coarse" type="matrix" values="0 0 0 0 0.5 0 0 0 0 0.45 0 0 0 0 0.35 0.3 0 0 0 -0.1" result="blotch"/>
-  <feMerge><feMergeNode in="blotch"/><feMergeNode in="tooth"/></feMerge>
+  <feColorMatrix in="fine" type="matrix" values="0 0 0 0 0.42 0 0 0 0 0.42 0 0 0 0 0.42 0.32 0 0 0 -0.13" result="tooth"/>
 </filter>
 <filter id="pc-print" color-interpolation-filters="sRGB">
   <feTurbulence type="fractalNoise" baseFrequency="0.02 0.6" numOctaves="2" seed="16" result="n"/>
@@ -34,9 +31,9 @@
 </filter>
 <radialGradient id="pc-vignette" cx="50%" cy="45%" r="75%">
   <stop offset="60%" stop-color="#8a7f66" stop-opacity="0"/>
-  <stop offset="100%" stop-color="#8a7f66" stop-opacity="0.14"/>
+  <stop offset="100%" stop-color="#8a7f66" stop-opacity="0.04"/>
 </radialGradient></defs>
-<g transform="translate(0 0)"><rect width="1556" height="260" fill="#f7f4ec"/>
+<g transform="translate(0 0)"><rect width="1556" height="260" fill="#fbfaf7"/>
 <path d="M20 0V260M40 0V260M60 0V260M80 0V260M100 0V260M120 0V260M140 0V260M160 0V260M180 0V260M200 0V260M220 0V260M240 0V260M260 0V260M280 0V260M300 0V260M320 0V260M340 0V260M360 0V260M380 0V260M400 0V260M420 0V260M440 0V260M460 0V260M480 0V260M500 0V260M520 0V260M540 0V260M560 0V260M580 0V260M600 0V260M620 0V260M640 0V260M660 0V260M680 0V260M700 0V260M720 0V260M740 0V260M760 0V260M780 0V260M800 0V260M820 0V260M840 0V260M860 0V260M880 0V260M900 0V260M920 0V260M940 0V260M960 0V260M980 0V260M1000 0V260M1020 0V260M1040 0V260M1060 0V260M1080 0V260M1100 0V260M1120 0V260M1140 0V260M1160 0V260M1180 0V260M1200 0V260M1220 0V260M1240 0V260M1260 0V260M1280 0V260M1300 0V260M1320 0V260M1340 0V260M1360 0V260M1380 0V260M1400 0V260M1420 0V260M1440 0V260M1460 0V260M1480 0V260M1500 0V260M1520 0V260M1540 0V260M0 20H1556M0 40H1556M0 60H1556M0 80H1556M0 100H1556M0 120H1556M0 140H1556M0 160H1556M0 180H1556M0 200H1556M0 220H1556M0 240H1556" stroke="#7d9cc4" stroke-width="0.7" stroke-opacity="0.28" fill="none" filter="url(#pc-print)"/>
 <rect width="1556" height="260" filter="url(#pc-paper)"/>
 <rect width="1556" height="260" fill="url(#pc-vignette)"/></g>
