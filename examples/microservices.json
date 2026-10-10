@@ -1,0 +1,35 @@
+{
+  "$schema": "../schema/architecture.schema.json",
+  "version": "0.1",
+  "type": "architecture",
+  "title": "Online shop",
+  "direction": "TB",
+  "nodes": [
+    { "id": "shopper", "label": "Shopper", "shape": "person" },
+    { "id": "gateway", "label": "API gateway", "shape": "rounded" },
+    { "id": "catalog", "label": "Catalog", "shape": "rounded", "group": "services" },
+    { "id": "orders", "label": "Orders", "shape": "rounded", "group": "services" },
+    { "id": "payments", "label": "Payments", "shape": "rounded", "group": "services" },
+    { "id": "events", "label": "Order events", "sublabel": "Kafka", "shape": "queue" },
+    { "id": "catalogdb", "label": "Catalog DB", "shape": "database", "group": "data" },
+    { "id": "ordersdb", "label": "Orders DB", "shape": "database", "group": "data" },
+    { "id": "stripe", "label": "Stripe", "shape": "cloud" },
+    { "id": "email", "label": "Email sender", "shape": "box" }
+  ],
+  "groups": [
+    { "id": "services", "label": "Services" },
+    { "id": "data", "label": "Databases", "shade": "light" }
+  ],
+  "edges": [
+    { "from": "shopper", "to": "gateway", "label": "HTTPS" },
+    { "from": "gateway", "to": "catalog" },
+    { "from": "gateway", "to": "orders" },
+    { "from": "gateway", "to": "payments" },
+    { "from": "catalog", "to": "catalogdb" },
+    { "from": "orders", "to": "ordersdb" },
+    { "from": "payments", "to": "stripe", "label": "charge" },
+    { "from": "orders", "to": "events", "label": "publish", "style": "dashed" },
+    { "from": "events", "to": "email", "style": "dashed" }
+  ],
+  "paper": { "seed": 8 }
+}

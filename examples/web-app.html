@@ -1,0 +1,1971 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="penciled">
+<title>Photo sharing app</title>
+<style>
+:root {
+  --desk: #e9e8e4; --bar: #f8f7f4; --ink: #2a2a2e; --muted: #6b6a66; --line: #d6d4ce;
+  --btn: #ffffff; --btn-on: #2f2f35; --btn-on-ink: #fbfaf7; --warn: #9a5b00; --warn-bg: #fff3dc;
+  --shadow: 0 1px 2px rgba(0,0,0,.08), 0 8px 28px rgba(0,0,0,.12);
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --desk: #1c1c1f; --bar: #26262a; --ink: #ecebe7; --muted: #a09f9a; --line: #3a3a40;
+    --btn: #303036; --btn-on: #ecebe7; --btn-on-ink: #1c1c1f; --warn: #ffc56b; --warn-bg: #3a2c12;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.5); }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { display: flex; flex-direction: column; background: var(--desk); color: var(--ink);
+  font: 13px/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+header { display: flex; flex-direction: column; gap: 8px; padding: 10px 16px;
+  background: var(--bar); border-bottom: 1px solid var(--line); }
+header .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+h1 { margin: 0; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; max-width: 50ch; }
+.group { display: flex; align-items: center; gap: 6px; }
+.group > span { color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-right: 1px solid var(--line); border-radius: 0; }
+.seg button:last-child { border-right: 0; }
+button { font: inherit; color: var(--ink); background: var(--btn); border: 1px solid var(--line);
+  border-radius: 8px; padding: 5px 10px; cursor: pointer; min-height: 28px; }
+button:hover { filter: brightness(.96); }
+button:focus-visible { outline: 2px solid #4a7bd0; outline-offset: 1px; }
+button[aria-pressed="true"] { background: var(--btn-on); color: var(--btn-on-ink); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+label.check { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); cursor: pointer; }
+.spacer { flex: 1; }
+.zoom { font-variant-numeric: tabular-nums; min-width: 5ch; text-align: center; color: var(--muted); }
+#warn { background: var(--warn-bg); color: var(--warn); border-color: transparent; font-weight: 600; }
+#warn[hidden] { display: none; }
+main { position: relative; flex: 1; overflow: hidden; cursor: grab; touch-action: none; }
+main.dragging { cursor: grabbing; }
+#sheet { position: absolute; left: 0; top: 0; box-shadow: var(--shadow); line-height: 0; }
+#sheet svg { display: block; }
+.zoombar { position: absolute; right: 16px; bottom: 16px; display: flex; align-items: center; gap: 4px; padding: 4px;
+  background: var(--bar); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); cursor: auto; }
+.zoombar button { border-color: transparent; background: transparent; min-width: 30px; }
+#panel { position: absolute; right: 16px; top: 12px; width: min(460px, calc(100% - 32px)); max-height: calc(100% - 24px);
+  overflow: auto; background: var(--bar); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow);
+  padding: 12px 14px; cursor: auto; }
+#panel[hidden] { display: none; }
+#panel h2 { margin: 0 0 8px; font-size: 13px; }
+#panel ul { margin: 0; padding-left: 18px; }
+#panel li { margin: 6px 0; }
+#panel code { color: var(--muted); }
+footer { padding: 6px 16px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); background: var(--bar); }
+kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+noscript { padding: 24px; }
+@media (max-width: 720px) { footer { display: none; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="row">
+    <h1>Photo sharing app</h1>
+    <div class="spacer"></div>
+    <button id="warn" hidden aria-expanded="false" aria-controls="panel"></button>
+    <div class="group" role="group" aria-label="Save"><button id="svg" title="Save as SVG (vector)">SVG</button><button id="png" title="Save as PNG (lossless, large)">PNG</button><button id="jpg" title="Save as JPG (small, for sharing)">JPG</button><button id="json" title="Save the input with the current paper, pencil, flow and seed">JSON</button></div>
+  </div>
+  <div class="row controls">
+    <div class="group"><span>Paper</span><div class="seg" data-opt="style">
+    <button data-v="clean">Clean</button><button data-v="aged">Aged</button><button data-v="bright">Bright</button></div></div>
+    <div class="group"><span>Ruling</span><div class="seg" data-opt="texture">
+    <button data-v="plain">Plain</button><button data-v="lined">Lined</button><button data-v="grid">Grid</button></div></div>
+    <div class="group"><span>Pencil</span><div class="seg" data-opt="pencil">
+    <button data-v="HB">HB</button><button data-v="2B">2B</button><button data-v="4B">4B</button></div></div>
+    <div class="group"><span>Flow</span><div class="seg" data-opt="direction">
+    <button data-v="LR" title="Left to right">→</button><button data-v="TB" title="Top to bottom">↓</button></div></div>
+    <label class="check"><input type="checkbox" id="eraser"> Eraser marks</label>
+    <button id="redraw" title="Draw it again with a new seed (R)">↻ Redraw</button>
+  </div>
+</header>
+<main id="stage"><div id="sheet"></div>
+<div class="zoombar"><button id="out" title="Zoom out (−)" aria-label="Zoom out">−</button><span class="zoom" id="zoom">100%</span>
+  <button id="in" title="Zoom in (+)" aria-label="Zoom in">+</button><button id="fit" title="Fit to window (F)">Fit</button></div><div id="panel" hidden role="region" aria-label="Warnings"></div>
+<noscript>This viewer needs JavaScript to draw the diagram.</noscript></main>
+<footer>Drag to pan · scroll to zoom · <kbd>R</kbd> redraw · <kbd>F</kbd> fit · <kbd>0</kbd> actual size</footer>
+<script>(() => {
+const defs = {
+"assets": () => {
+const METRICS = {"unitsPerEm":1000,"ascender":960,"descender":-300,"advance":{"32":242,"33":210,"34":237,"35":559,"36":450,"37":600,"38":564,"39":117,"40":330,"41":330,"42":363,"43":446,"44":198,"45":326,"46":198,"47":330,"48":450,"49":450,"50":450,"51":450,"52":450,"53":445,"54":457,"55":449,"56":450,"57":446,"58":198,"59":198,"60":446,"61":446,"62":446,"63":374,"64":643,"65":505,"66":521,"67":474,"68":581,"69":531,"70":458,"71":489,"72":567,"73":403,"74":309,"75":501,"76":426,"77":723,"78":606,"79":499,"80":465,"81":499,"82":539,"83":489,"84":458,"85":482,"86":490,"87":720,"88":524,"89":504,"90":522,"91":330,"92":330,"93":330,"94":446,"95":446,"96":353,"97":440,"98":438,"99":358,"100":396,"101":328,"102":294,"103":358,"104":467,"105":190,"106":207,"107":368,"108":172,"109":563,"110":453,"111":356,"112":378,"113":377,"114":360,"115":344,"116":331,"117":370,"118":331,"119":517,"120":343,"121":341,"122":315,"123":330,"124":330,"125":330,"126":446,"160":242,"161":210,"162":450,"163":450,"164":450,"165":450,"166":330,"167":385,"168":353,"169":496,"170":350,"171":646,"172":465,"173":326,"174":496,"175":353,"176":283,"177":446,"178":320,"179":320,"180":353,"181":370,"182":424,"183":187,"184":353,"185":320,"186":283,"187":708,"188":800,"189":800,"190":800,"191":374,"192":502,"193":502,"194":502,"195":502,"196":502,"197":502,"198":784,"199":482,"200":548,"201":548,"202":548,"203":548,"204":400,"205":400,"206":400,"207":403,"208":578,"209":566,"210":496,"211":496,"212":496,"213":496,"214":496,"215":446,"216":496,"217":482,"218":482,"219":482,"220":482,"221":504,"222":472,"223":398,"224":437,"225":437,"226":437,"227":437,"228":437,"229":437,"230":574,"231":355,"232":325,"233":325,"234":325,"235":325,"236":187,"237":187,"238":187,"239":187,"240":349,"241":450,"242":353,"243":353,"244":353,"245":353,"246":353,"247":446,"248":353,"249":370,"250":370,"251":370,"252":370,"253":341,"254":378,"255":341,"8211":446,"8212":566,"8216":117,"8217":117,"8220":267,"8221":267,"8226":187,"8230":594}};
+const SCHEMA = {"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://raw.githubusercontent.com/himanshu13ps/penciled/main/schema/architecture.schema.json","title":"penciled architecture diagram","description":"Input for a hand-drawn pencil-style architecture diagram: nodes (boxes and other shapes), optional groups around them, and edges (arrows) between them.","type":"object","required":["version","type","nodes"],"additionalProperties":false,"properties":{"$schema":{"type":"string","description":"Optional pointer to this schema, for editor support."},"version":{"const":"0.1","description":"Schema version."},"type":{"const":"architecture","description":"Diagram type. Only architecture diagrams exist in v0.1."},"title":{"type":"string","minLength":1,"maxLength":80,"description":"Handwritten title shown at the top of the page."},"direction":{"enum":["LR","TB"],"default":"LR","description":"Main flow for automatic layout: left to right or top to bottom. Ignored for nodes that have explicit positions."},"nodes":{"type":"array","minItems":1,"maxItems":40,"items":{"$ref":"#/$defs/node"}},"groups":{"type":"array","maxItems":12,"items":{"$ref":"#/$defs/group"}},"edges":{"type":"array","maxItems":80,"items":{"$ref":"#/$defs/edge"}},"paper":{"$ref":"#/$defs/paper"}},"$defs":{"id":{"type":"string","pattern":"^[A-Za-z][A-Za-z0-9_-]{0,39}$","description":"Identifier: starts with a letter, then letters, digits, '_' or '-'. Max 40 characters. Must be unique across nodes and groups."},"label":{"type":"string","minLength":1,"maxLength":60,"description":"Handwritten text. Use '\\n' for a line break."},"shade":{"enum":["none","light","medium","dark"],"description":"How much graphite shading fills the shape."},"node":{"type":"object","required":["id","label"],"additionalProperties":false,"properties":{"id":{"$ref":"#/$defs/id"},"label":{"$ref":"#/$defs/label"},"sublabel":{"type":"string","minLength":1,"maxLength":60,"description":"Smaller second line under the label, e.g. a technology name."},"shape":{"enum":["box","rounded","database","queue","person","cloud","document"],"default":"box","description":"Drawn shape. box: plain rectangle. rounded: service or process. database: cylinder. queue: horizontal cylinder. person: stick figure (user or actor). cloud: external system or internet. document: page with a folded corner (file, report, config)."},"shade":{"allOf":[{"$ref":"#/$defs/shade"}],"default":"none"},"group":{"$ref":"#/$defs/id","description":"Id of the group this node sits inside."},"position":{"type":"object","description":"Manual placement of the node's centre, in page units (1 unit = 1 px at 100% zoom). Omit to let penciled place the node.","required":["x","y"],"additionalProperties":false,"properties":{"x":{"type":"number","minimum":0},"y":{"type":"number","minimum":0}}},"size":{"type":"object","description":"Manual size in page units. Omit to size the node to fit its label.","required":["width","height"],"additionalProperties":false,"properties":{"width":{"type":"number","minimum":40,"maximum":600},"height":{"type":"number","minimum":30,"maximum":400}}}}},"group":{"type":"object","required":["id","label"],"additionalProperties":false,"description":"A dashed outline drawn around its member nodes, e.g. a VPC, a cluster or a team boundary.","properties":{"id":{"$ref":"#/$defs/id"},"label":{"$ref":"#/$defs/label"},"parent":{"$ref":"#/$defs/id","description":"Id of an enclosing group, for nesting."},"shade":{"allOf":[{"$ref":"#/$defs/shade"}],"default":"none"}}},"edge":{"type":"object","required":["from","to"],"additionalProperties":false,"description":"An arrow between two nodes.","properties":{"from":{"$ref":"#/$defs/id"},"to":{"$ref":"#/$defs/id"},"label":{"type":"string","minLength":1,"maxLength":40,"description":"Short handwritten text next to the arrow, e.g. 'HTTPS' or 'writes'."},"style":{"enum":["solid","dashed"],"default":"solid","description":"dashed usually means async or optional."},"arrow":{"enum":["end","start","both","none"],"default":"end","description":"Which ends get an arrowhead."}}},"paper":{"type":"object","additionalProperties":false,"description":"The look of the paper and pencil.","properties":{"texture":{"enum":["plain","lined","grid"],"default":"plain","description":"Paper ruling under the drawing."},"style":{"enum":["clean","aged","bright"],"default":"clean","description":"Paper colour and grain: clean (default) is near-white sketchbook paper, aged is warm cream with soft blotches, bright is crisp white printer paper."},"pencil":{"enum":["HB","2B","4B"],"default":"2B","description":"Pencil hardness: HB is light and crisp, 4B is dark and soft."},"eraserMarks":{"type":"boolean","default":true,"description":"Add faint smudges and ghost lines where an eraser was used."},"seed":{"type":"integer","minimum":0,"maximum":4294967295,"description":"Random seed for the wobble. Same input and seed give the same drawing."}}}}};
+const FONT = "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";
+return { METRICS, SCHEMA, fontBase64: () => FONT };
+},
+"random": (load) => {
+// Seeded random numbers, so the same input and seed always give the same drawing.
+
+function createRandom(seed) {
+  let a = seed >>> 0;
+  const next = () => {
+    // mulberry32
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  return {
+    next,
+    range: (min, max) => min + (max - min) * next(),
+    chance: (p) => next() < p,
+    sign: () => (next() < 0.5 ? -1 : 1),
+    int: (min, max) => Math.floor(min + (max - min + 1) * next()),
+  };
+}
+
+return { createRandom };
+},
+"geometry": (load) => {
+// Plain geometry helpers shared by shapes, layout and arrows.
+
+const r1 = (n) => Math.round(n * 10) / 10;
+
+const center = (rect) => ({ x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 });
+
+function inflate(rect, by) {
+  return { x: rect.x - by, y: rect.y - by, width: rect.width + 2 * by, height: rect.height + 2 * by };
+}
+
+function overlaps(a, b) {
+  return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+}
+
+function rectPolygon({ x, y, width: w, height: h }) {
+  return [{ x, y }, { x: x + w, y }, { x: x + w, y: y + h }, { x, y: y + h }];
+}
+
+// Points around an ellipse, from angle a0 to a1 (radians, clockwise on screen).
+function ellipsePoints(cx, cy, rx, ry, a0 = 0, a1 = Math.PI * 2, steps = 32) {
+  const pts = [];
+  for (let i = 0; i <= steps; i++) {
+    const a = a0 + ((a1 - a0) * i) / steps;
+    pts.push({ x: cx + rx * Math.cos(a), y: cy + ry * Math.sin(a) });
+  }
+  return pts;
+}
+
+// A centre line through a list of points, parameterised by distance travelled
+// so that t=0.5 really is halfway. Values of t a little outside [0, 1] carry
+// on along the first or last segment, which is how overshoot works.
+function polyline(pts) {
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+  const total = cum[cum.length - 1] || 1;
+  return (t) => {
+    const d = t * total;
+    let i = 1;
+    if (d <= 0) i = 1;
+    else if (d >= total) i = pts.length - 1;
+    else while (cum[i] < d) i++;
+    const seg = cum[i] - cum[i - 1] || 1;
+    const u = (d - cum[i - 1]) / seg;
+    return { x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * u, y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * u };
+  };
+}
+
+// Pieces of a line (through p, direction d) that lie inside a polygon, as
+// [t0, t1] pairs along d.
+function clipToPolygon(poly, p, d) {
+  const ts = [];
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length];
+    const ex = b.x - a.x, ey = b.y - a.y;
+    const den = d.x * ey - d.y * ex;
+    if (Math.abs(den) < 1e-9) continue;
+    const t = ((a.x - p.x) * ey - (a.y - p.y) * ex) / den;
+    const s = ((a.x - p.x) * d.y - (a.y - p.y) * d.x) / den;
+    if (s >= 0 && s < 1) ts.push(t);
+  }
+  ts.sort((m, n) => m - n);
+  const out = [];
+  for (let i = 0; i + 1 < ts.length; i += 2) out.push([ts[i], ts[i + 1]]);
+  return out;
+}
+
+// Where a ray from `from` towards `toward` first leaves a polygon that
+// contains `from`.
+function rayExit(poly, from, toward) {
+  const len = Math.hypot(toward.x - from.x, toward.y - from.y) || 1;
+  const d = { x: (toward.x - from.x) / len, y: (toward.y - from.y) / len };
+  let best = Infinity;
+  for (const [, t1] of clipToPolygon(poly, from, d)) if (t1 > 0 && t1 < best) best = t1;
+  if (best === Infinity) best = 0;
+  return { x: from.x + d.x * best, y: from.y + d.y * best };
+}
+
+// Shrink a roughly convex polygon towards its centroid by `by` px.
+function insetPolygon(poly, by) {
+  const c = poly.reduce((acc, p) => ({ x: acc.x + p.x / poly.length, y: acc.y + p.y / poly.length }), { x: 0, y: 0 });
+  return poly.map((p) => {
+    const dist = Math.hypot(p.x - c.x, p.y - c.y) || 1;
+    const k = Math.max(0, 1 - by / dist);
+    return { x: c.x + (p.x - c.x) * k, y: c.y + (p.y - c.y) * k };
+  });
+}
+
+function quadPoint(a, c, b, t) {
+  const u = 1 - t;
+  return { x: u * u * a.x + 2 * u * t * c.x + t * t * b.x, y: u * u * a.y + 2 * u * t * c.y + t * t * b.y };
+}
+
+return { r1, center, inflate, overlaps, rectPolygon, ellipsePoints, polyline, clipToPolygon, rayExit, insetPolygon, quadPoint };
+},
+"text": (load) => {
+// Handwriting font: embedding and text measurement without a browser.
+
+const { METRICS, fontBase64 } = load("assets");
+
+const FONT_FAMILY = "penciled-hand";
+
+let fontFace;
+function fontFaceCss() {
+  fontFace ??= `@font-face{font-family:${FONT_FAMILY};src:url(data:font/woff2;base64,${fontBase64()}) format("woff2");}`;
+  return fontFace;
+}
+
+const fallbackAdvance = METRICS.advance["110"]; // "n"
+
+function textWidth(text, fontSize) {
+  let units = 0;
+  for (const ch of text) units += METRICS.advance[ch.codePointAt(0)] ?? fallbackAdvance;
+  return (units / METRICS.unitsPerEm) * fontSize;
+}
+
+function measureLines(lines, fontSize) {
+  return Math.max(...lines.map((l) => textWidth(l, fontSize)));
+}
+
+function escapeXml(s) {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
+return { FONT_FAMILY, fontFaceCss, textWidth, measureLines, escapeXml };
+},
+"paper": (load) => {
+// Paper and graphite: SVG filters and the page background.
+
+const GRAPHITE = "#34343a";
+// Paper styles. "clean" (the default) is near-white sketchbook paper with
+// only a fine tooth; "aged" is warm cream with blotches and darker edges; "bright"
+// is crisp printer paper.
+const PAPER_STYLES = {
+  aged: { color: "#f7f4ec", tooth: [0.45, -0.17], toothTint: [0.4, 0.38, 0.33], blotch: [0.3, -0.1], vignette: 0.14, groupTone: 1 },
+  clean: { color: "#fbfaf7", tooth: [0.32, -0.13], toothTint: [0.42, 0.42, 0.42], blotch: null, vignette: 0.04, groupTone: 0.5 },
+  bright: { color: "#fefefe", tooth: [0.22, -0.09], toothTint: [0.45, 0.45, 0.47], blotch: null, vignette: 0, groupTone: 0.45 },
+};
+
+// Filters are defined once per drawing. Turbulence seeds come from the
+// drawing seed so grain is reproducible too.
+function defs(seed, style = PAPER_STYLES.clean) {
+  const s = seed % 1000;
+  const [tr, tg, tb] = style.toothTint;
+  return `
+<filter id="pc-graphite" x="-2%" y="-2%" width="104%" height="104%" color-interpolation-filters="sRGB">
+  <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="${s}" result="tooth"/>
+  <feColorMatrix in="tooth" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.6 0 0 0 -0.45" result="mask"/>
+  <feComposite in="SourceGraphic" in2="mask" operator="in" result="grainy"/>
+  <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="${s + 1}" result="warp"/>
+  <feDisplacementMap in="grainy" in2="warp" scale="1.1" xChannelSelector="R" yChannelSelector="G"/>
+</filter>
+<filter id="pc-smudge" x="-20%" y="-20%" width="140%" height="140%">
+  <feGaussianBlur stdDeviation="5"/>
+</filter>
+<filter id="pc-soft" x="-30%" y="-30%" width="160%" height="160%">
+  <feGaussianBlur stdDeviation="4"/>
+</filter>
+<filter id="pc-erased" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+  <feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="2" seed="${s + 2}" result="tooth"/>
+  <feColorMatrix in="tooth" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 -1.1" result="mask"/>
+  <feComposite in="SourceGraphic" in2="mask" operator="in" result="grainy"/>
+  <feGaussianBlur in="grainy" stdDeviation="0.7"/>
+</filter>
+<filter id="pc-paper" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+  <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="${s + 3}" result="fine"/>
+  <feColorMatrix in="fine" type="matrix" values="0 0 0 0 ${tr} 0 0 0 0 ${tg} 0 0 0 0 ${tb} ${style.tooth[0]} 0 0 0 ${style.tooth[1]}" result="tooth"/>${style.blotch ? `
+  <feTurbulence type="fractalNoise" baseFrequency="0.006" numOctaves="3" seed="${s + 4}" result="coarse"/>
+  <feColorMatrix in="coarse" type="matrix" values="0 0 0 0 0.5 0 0 0 0 0.45 0 0 0 0 0.35 ${style.blotch[0]} 0 0 0 ${style.blotch[1]}" result="blotch"/>
+  <feMerge><feMergeNode in="blotch"/><feMergeNode in="tooth"/></feMerge>` : ""}
+</filter>
+<filter id="pc-print" color-interpolation-filters="sRGB">
+  <feTurbulence type="fractalNoise" baseFrequency="0.02 0.6" numOctaves="2" seed="${s + 5}" result="n"/>
+  <feColorMatrix in="n" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.6 0 0 0 -0.2" result="mask"/>
+  <feComposite in="SourceGraphic" in2="mask" operator="in"/>
+</filter>
+<radialGradient id="pc-vignette" cx="50%" cy="45%" r="75%">
+  <stop offset="60%" stop-color="#8a7f66" stop-opacity="0"/>
+  <stop offset="100%" stop-color="#8a7f66" stop-opacity="${style.vignette}"/>
+</radialGradient>`;
+}
+
+// Printed ruling for lined and grid paper: faint blue, slightly uneven in
+// strength the way cheap print is, with a red margin on lined paper.
+function ruling(width, height, texture) {
+  if (texture === "lined") {
+    let d = "";
+    for (let y = 72; y < height; y += 30) d += `M0 ${y}H${width}`;
+    return `<path d="${d}" stroke="#7d9cc4" stroke-width="0.9" stroke-opacity="0.35" fill="none" filter="url(#pc-print)"/>` +
+      `<path d="M58 0V${height}" stroke="#d07070" stroke-width="1" stroke-opacity="0.4" fill="none" filter="url(#pc-print)"/>`;
+  }
+  if (texture === "grid") {
+    let d = "";
+    for (let x = 20; x < width; x += 20) d += `M${x} 0V${height}`;
+    for (let y = 20; y < height; y += 20) d += `M0 ${y}H${width}`;
+    return `<path d="${d}" stroke="#7d9cc4" stroke-width="0.7" stroke-opacity="0.28" fill="none" filter="url(#pc-print)"/>`;
+  }
+  return "";
+}
+
+function background(width, height, texture = "plain", style = PAPER_STYLES.clean) {
+  return `<rect width="${width}" height="${height}" fill="${style.color}"/>
+${ruling(width, height, texture)}
+<rect width="${width}" height="${height}" filter="url(#pc-paper)"/>
+${style.vignette ? `<rect width="${width}" height="${height}" fill="url(#pc-vignette)"/>` : ""}`;
+}
+
+return { GRAPHITE, PAPER_STYLES, defs, background };
+},
+"stroke": (load) => {
+// Pencil strokes.
+//
+// A stroke is not an SVG line. It is a filled outline around a wobbly centre
+// line, with a width that ramps up as the pencil lands, varies with pressure
+// and thins out as the pencil lifts. Several light passes over the same line
+// build up graphite the way a real pencil does.
+
+const PENCILS = {
+  HB: { width: 1.3, opacity: 0.62 },
+  "2B": { width: 1.6, opacity: 0.74 },
+  "4B": { width: 2.0, opacity: 0.86 },
+};
+
+const r1 = (n) => Math.round(n * 10) / 10;
+
+// Centre-line helpers. Each returns t in [0, 1] -> {x, y}.
+const line = (a, b) => (t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+
+const quad = (a, c, b) => (t) => {
+  const u = 1 - t;
+  return { x: u * u * a.x + 2 * u * t * c.x + t * t * b.x, y: u * u * a.y + 2 * u * t * c.y + t * t * b.y };
+};
+
+// Smooth path through points (Catmull-Rom as cubic Béziers), written with
+// relative coordinates to keep the SVG small.
+function smoothPath(pts, closed) {
+  const n = pts.length;
+  const at = (i) => (closed ? pts[(i + n) % n] : pts[Math.max(0, Math.min(n - 1, i))]);
+  let px = r1(pts[0].x), py = r1(pts[0].y);
+  let d = `M${px} ${py}`;
+  const rel = (v, o) => r1(v - o);
+  const last = closed ? n : n - 1;
+  for (let i = 0; i < last; i++) {
+    const p0 = at(i - 1), p1 = at(i), p2 = at(i + 1), p3 = at(i + 2);
+    const c1x = p1.x + (p2.x - p0.x) / 6, c1y = p1.y + (p2.y - p0.y) / 6;
+    const c2x = p2.x - (p3.x - p1.x) / 6, c2y = p2.y - (p3.y - p1.y) / 6;
+    const ex = r1(p2.x), ey = r1(p2.y);
+    d += `c${rel(c1x, px)} ${rel(c1y, py)} ${rel(c2x, px)} ${rel(c2y, py)} ${rel(ex, px)} ${rel(ey, py)}`;
+    px = ex; py = ey;
+  }
+  return (d + (closed ? "Z" : "")).replace(/ -/g, "-");
+}
+
+/**
+ * Outline of one pencil pass along `center`, as an SVG path `d`.
+ *
+ * options:
+ *   width      full stroke width in px
+ *   overshoot  px the line may run past each end (hands overshoot corners)
+ *   wobble     px of slow sideways drift along the line
+ *   bow        fraction of the length the whole line may sag to one side
+ *   taperIn    fraction of the length spent landing the pencil
+ *   taperOut   fraction spent lifting it
+ */
+function strokeOutline(center, rng, options = {}) {
+  const {
+    width = 1.6,
+    overshoot = 3,
+    wobble = 0.7,
+    bow = 0.006,
+    taperIn = 0.06,
+    taperOut = 0.18,
+  } = options;
+
+  const a = center(0), b = center(1);
+  const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+
+  // Extend or shorten the ends a little: the pencil rarely starts and stops exactly on the mark.
+  const t0 = -rng.range(-0.3, 1) * overshoot / len;
+  const t1 = 1 + rng.range(-0.3, 1) * overshoot / len;
+
+  const bowAmp = rng.range(-bow, bow) * len;
+  const waves = [
+    { amp: wobble, freq: rng.range(0.6, 1.4) * Math.max(1, len / 140), phase: rng.range(0, 6.28) },
+    { amp: wobble * 0.35, freq: rng.range(0.8, 1.2) * Math.max(2, len / 35), phase: rng.range(0, 6.28) },
+  ];
+  const press = { freq: rng.range(1, 2.5), phase: rng.range(0, 6.28) };
+  const startShift = rng.range(-1, 1) * wobble;
+  const endShift = rng.range(-1, 1) * wobble;
+
+  const samples = Math.max(6, Math.ceil(len / 8));
+  const left = [], right = [];
+  for (let i = 0; i <= samples; i++) {
+    const u = i / samples;
+    const t = t0 + (t1 - t0) * u;
+    // Tangent and normal, from the centre line itself, so curves work too.
+    const p = center(t);
+    const q = center(t + 0.001);
+    let tx = q.x - p.x, ty = q.y - p.y;
+    const tl = Math.hypot(tx, ty) || 1;
+    tx /= tl; ty /= tl;
+    const nx = -ty, ny = tx;
+
+    let off = bowAmp * Math.sin(Math.PI * u) + startShift * (1 - u) + endShift * u;
+    for (const w of waves) off += w.amp * Math.sin(w.freq * Math.PI * 2 * u + w.phase);
+
+    let profile = 1;
+    if (u < taperIn) profile = 0.35 + 0.65 * (u / taperIn);
+    else if (u > 1 - taperOut) profile = 0.12 + 0.88 * ((1 - u) / taperOut);
+    profile *= 1 + 0.18 * Math.sin(press.freq * Math.PI * 2 * u + press.phase);
+    const hw = (width * profile) / 2;
+
+    const cx = p.x + nx * off, cy = p.y + ny * off;
+    left.push({ x: cx + nx * hw, y: cy + ny * hw });
+    right.push({ x: cx - nx * hw, y: cy - ny * hw });
+  }
+  return smoothPath(left.concat(right.reverse()), true);
+}
+
+/**
+ * A full pencil line: one firm pass, and often a lighter second pass that
+ * doesn't quite follow the first. Returns SVG markup.
+ */
+function pencilLine(center, rng, pencil, options = {}) {
+  const { passes = 2, opacity = 1, width = 1 } = options;
+  const base = { ...options, width: pencil.width * width };
+  let out = `<path d="${strokeOutline(center, rng, base)}" fill-opacity="${r1(pencil.opacity * opacity * 100) / 100}"/>`;
+  if (passes > 1 && rng.chance(0.75)) {
+    const second = { ...base, width: base.width * 0.75, wobble: (options.wobble ?? 0.7) * 1.3, overshoot: (options.overshoot ?? 3) * 0.6 };
+    out += `<path d="${strokeOutline(center, rng, second)}" fill-opacity="${r1(pencil.opacity * opacity * 45) / 100}"/>`;
+  }
+  return out;
+}
+
+return { PENCILS, line, quad, strokeOutline, pencilLine };
+},
+"shapes": (load) => {
+// Node shapes built from pencil strokes.
+//
+// Each shape knows its size for a given label, and for a placed node gives:
+//   outline    polygon used to end arrows on the drawn edge
+//   shadeArea  polygon the shading fills
+//   label      centre of the label block
+//   draw()     the pencil strokes
+
+const { line, pencilLine, strokeOutline } = load("stroke");
+const { GRAPHITE } = load("paper");
+const { clipToPolygon, ellipsePoints, insetPolygon, polyline, r1, rectPolygon } = load("geometry");
+
+const PERSON_FIGURE = { width: 44, height: 66 };
+
+// Box-like shapes: each side is its own stroke that starts a little before
+// its corner and runs a little past the next one, so corners cross or just miss.
+function straightSides(pts, rng, pencil) {
+  const j = () => rng.range(-1.5, 1.5);
+  const p = pts.map((q) => ({ x: q.x + j(), y: q.y + j() }));
+  const start = rng.int(0, p.length - 1);
+  let out = "";
+  for (let i = 0; i < p.length; i++) {
+    const k = (start + i) % p.length;
+    const a = p[k], b = p[(k + 1) % p.length];
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    out += pencilLine(line(a, b), rng, pencil, { overshoot: Math.min(rng.range(3, 7), len * 0.25), wobble: len < 30 ? 0.4 : 0.8 });
+  }
+  return out;
+}
+
+// Curved outlines: the loop is drawn in a few overlapping strokes, the way a
+// hand goes round a shape and lifts the pencil once or twice.
+function loopStrokes(pts, rng, pencil, pieces = 2) {
+  const loop = pts.concat(pts, [pts[0]]);
+  const path = polyline(loop);
+  const offset = rng.next();
+  let out = "";
+  for (let i = 0; i < pieces; i++) {
+    const s = (offset + i / pieces - rng.range(0.02, 0.05)) / 2;
+    const e = (offset + (i + 1) / pieces + rng.range(0.02, 0.05)) / 2;
+    out += pencilLine((u) => path(s + (e - s) * u), rng, pencil, { overshoot: 0, wobble: 0.7 });
+  }
+  return out;
+}
+
+// A small closed curve (head, cylinder end) drawn as one stroke that goes a
+// little past where it started.
+function ellipseStroke(cx, cy, rx, ry, rng, pencil) {
+  const a0 = rng.range(0, Math.PI * 2);
+  const pts = ellipsePoints(cx, cy, rx, ry, a0, a0 + Math.PI * 2 + rng.range(0.25, 0.5), 40);
+  return pencilLine(polyline(pts), rng, pencil, { overshoot: 0, wobble: 0.5, taperIn: 0.05, taperOut: 0.12 });
+}
+
+function arcStroke(cx, cy, rx, ry, a0, a1, rng, pencil) {
+  return pencilLine(polyline(ellipsePoints(cx, cy, rx, ry, a0, a1, 24)), rng, pencil, { overshoot: 1, wobble: 0.5 });
+}
+
+function roundedPolygon({ x, y, width: w, height: h }, r) {
+  const pts = [];
+  const corners = [[x + w - r, y + r, -Math.PI / 2], [x + w - r, y + h - r, 0], [x + r, y + h - r, Math.PI / 2], [x + r, y + r, Math.PI]];
+  for (const [cx, cy, a] of corners) pts.push(...ellipsePoints(cx, cy, r, r, a, a + Math.PI / 2, 6));
+  return pts;
+}
+
+const fitBox = ({ width, height }, minW = 110, minH = 62) => ({
+  width: Math.max(minW, Math.ceil(width + 44)),
+  height: Math.max(minH, Math.ceil(height + 30)),
+});
+
+const SHAPES = {
+  box: {
+    size: (label) => fitBox(label),
+    place: (rect) => {
+      const outline = rectPolygon(rect);
+      return { outline, shadeArea: outline, label: centerOf(rect), draw: (rng, pencil) => straightSides(outline, rng, pencil) };
+    },
+  },
+
+  rounded: {
+    size: (label) => fitBox(label),
+    place: (rect) => {
+      const outline = roundedPolygon(rect, Math.min(14, rect.height / 3));
+      return { outline, shadeArea: outline, label: centerOf(rect), draw: (rng, pencil) => loopStrokes(outline, rng, pencil, 3) };
+    },
+  },
+
+  document: {
+    size: (label) => fitBox({ width: label.width + 10, height: label.height }),
+    place: (rect) => {
+      const { x, y, width: w, height: h } = rect;
+      const f = Math.min(16, h / 3);
+      const outline = [{ x, y }, { x: x + w - f, y }, { x: x + w, y: y + f }, { x: x + w, y: y + h }, { x, y: y + h }];
+      const c = centerOf(rect);
+      return {
+        outline,
+        shadeArea: outline,
+        label: { x: c.x - f / 4, y: c.y + f / 4 },
+        draw: (rng, pencil) =>
+          straightSides(outline, rng, pencil) +
+          pencilLine(line({ x: x + w - f, y: y + 1 }, { x: x + w - f + 1, y: y + f }), rng, pencil, { passes: 1, overshoot: 1, wobble: 0.3 }) +
+          pencilLine(line({ x: x + w - f + 1, y: y + f }, { x: x + w - 1, y: y + f }), rng, pencil, { passes: 1, overshoot: 1, wobble: 0.3 }),
+      };
+    },
+  },
+
+  database: {
+    size: (label) => {
+      const width = Math.max(110, Math.ceil(label.width + 44));
+      const ry = cylinderCap(width);
+      return { width, height: Math.max(84, Math.ceil(label.height + 30 + 2 * ry)) };
+    },
+    place: (rect) => {
+      const { x, y, width: w, height: h } = rect;
+      const rx = w / 2, ry = cylinderCap(w), cx = x + rx;
+      const top = y + ry, bottom = y + h - ry;
+      const outline = [...ellipsePoints(cx, top, rx, ry, Math.PI, Math.PI * 2, 16), ...ellipsePoints(cx, bottom, rx, ry, 0, Math.PI, 16)];
+      const shadeArea = [...ellipsePoints(cx, top, rx, ry, Math.PI, 0, 16), ...ellipsePoints(cx, bottom, rx, ry, 0, Math.PI, 16)];
+      return {
+        outline,
+        shadeArea,
+        label: { x: cx, y: (top + ry + bottom) / 2 },
+        draw: (rng, pencil) =>
+          ellipseStroke(cx, top, rx, ry, rng, pencil) +
+          pencilLine(line({ x, y: top }, { x, y: bottom }), rng, pencil, { overshoot: 2 }) +
+          pencilLine(line({ x: x + w, y: top }, { x: x + w, y: bottom }), rng, pencil, { overshoot: 2 }) +
+          arcStroke(cx, bottom, rx, ry, 0, Math.PI, rng, pencil),
+      };
+    },
+  },
+
+  queue: {
+    size: (label) => {
+      const height = Math.max(62, Math.ceil(label.height + 30));
+      const rx = queueCap(height);
+      return { width: Math.max(130, Math.ceil(label.width + 44 + 2 * rx)), height };
+    },
+    place: (rect) => {
+      const { x, y, width: w, height: h } = rect;
+      const ry = h / 2, rx = queueCap(h), cy = y + ry;
+      const left = x + rx, right = x + w - rx;
+      const outline = [...ellipsePoints(left, cy, rx, ry, Math.PI / 2, Math.PI * 1.5, 16), ...ellipsePoints(right, cy, rx, ry, -Math.PI / 2, Math.PI / 2, 16)];
+      const shadeArea = [...ellipsePoints(left, cy, rx, ry, Math.PI / 2, Math.PI * 1.5, 16), ...ellipsePoints(right, cy, rx, ry, Math.PI * 1.5, Math.PI / 2, 16)];
+      return {
+        outline,
+        shadeArea,
+        label: { x: (left + right - rx) / 2, y: cy },
+        draw: (rng, pencil) =>
+          ellipseStroke(right, cy, rx, ry, rng, pencil) +
+          pencilLine(line({ x: left, y }, { x: right, y }), rng, pencil, { overshoot: 2 }) +
+          pencilLine(line({ x: left, y: y + h }, { x: right, y: y + h }), rng, pencil, { overshoot: 2 }) +
+          arcStroke(left, cy, rx, ry, Math.PI / 2, Math.PI * 1.5, rng, pencil),
+      };
+    },
+  },
+
+  person: {
+    // A stick figure with its label written underneath.
+    size: (label) => ({
+      width: Math.max(PERSON_FIGURE.width + 16, Math.ceil(label.width + 12)),
+      height: Math.ceil(PERSON_FIGURE.height + 10 + label.height),
+    }),
+    place: (rect) => {
+      const cx = rect.x + rect.width / 2, top = rect.y;
+      const fig = { x: cx - PERSON_FIGURE.width / 2, y: top, width: PERSON_FIGURE.width, height: PERSON_FIGURE.height };
+      const headR = 9.5, neck = top + 2 * headR + 1, hip = top + 42, foot = top + PERSON_FIGURE.height;
+      return {
+        // Arrows stop at the figure and its name together, so none run
+        // through the label underneath.
+        outline: rectPolygon({ x: Math.min(fig.x, rect.x), y: rect.y, width: Math.max(fig.width, rect.width), height: rect.height }),
+        shadeArea: null,
+        label: { x: cx, y: (foot + 10 + rect.y + rect.height) / 2 },
+        draw: (rng, pencil) => {
+          const j = () => rng.range(-1.2, 1.2);
+          const s = (a, b) => pencilLine(line(a, b), rng, pencil, { passes: 1, overshoot: 1, wobble: 0.4 });
+          return ellipseStroke(cx + j() / 2, top + headR, headR, headR, rng, pencil) +
+            s({ x: cx + j(), y: neck }, { x: cx + j(), y: hip }) +
+            s({ x: cx - 17 + j(), y: neck + 12 + j() }, { x: cx + 17 + j(), y: neck + 10 + j() }) +
+            s({ x: cx, y: hip }, { x: cx - 13 + j(), y: foot + j() }) +
+            s({ x: cx, y: hip }, { x: cx + 13 + j(), y: foot + j() });
+        },
+      };
+    },
+  },
+
+  cloud: {
+    size: (label) => ({
+      width: Math.max(130, Math.ceil(label.width + 76)),
+      height: Math.max(84, Math.ceil(label.height + 54)),
+    }),
+    // Bumps are random, so the outline is made once per node and reused for
+    // drawing, shading and arrows.
+    place: (rect, rng) => {
+      const c = centerOf(rect);
+      const bump = 10;
+      const rx = rect.width / 2 - bump, ry = rect.height / 2 - bump;
+      const n = Math.max(7, Math.min(12, Math.round((Math.PI * (rx + ry)) / 42)));
+      const base = rng.range(0, Math.PI * 2);
+      const anchors = [];
+      for (let i = 0; i < n; i++) {
+        const a = base + ((i + rng.range(-0.2, 0.2)) / n) * Math.PI * 2;
+        anchors.push({ x: c.x + rx * Math.cos(a), y: c.y + ry * Math.sin(a) });
+      }
+      const outline = [];
+      for (let i = 0; i < n; i++) {
+        const a = anchors[i], b = anchors[(i + 1) % n];
+        const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+        const dx = mx - c.x, dy = my - c.y, dl = Math.hypot(dx, dy) || 1;
+        const h = bump * rng.range(1.5, 2.1);
+        const ctrl = { x: mx + (dx / dl) * h, y: my + (dy / dl) * h };
+        for (let k = 0; k < 8; k++) {
+          const t = k / 8, u = 1 - t;
+          outline.push({ x: u * u * a.x + 2 * u * t * ctrl.x + t * t * b.x, y: u * u * a.y + 2 * u * t * ctrl.y + t * t * b.y });
+        }
+      }
+      return {
+        outline,
+        shadeArea: ellipsePoints(c.x, c.y, rx + 2, ry + 2, 0, Math.PI * 2, 24),
+        label: c,
+        draw: (rng2, pencil) => loopStrokes(outline, rng2, pencil, 2),
+      };
+    },
+  },
+};
+
+function centerOf(rect) {
+  return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+}
+
+function cylinderCap(width) {
+  return Math.max(8, Math.min(15, width * 0.1));
+}
+
+function queueCap(height) {
+  return Math.max(8, Math.min(14, height * 0.18));
+}
+
+const SHADE = {
+  light: { spacing: 7, opacity: 0.36, smudge: 0.06, cross: false },
+  medium: { spacing: 5, opacity: 0.48, smudge: 0.1, cross: false },
+  dark: { spacing: 4.2, opacity: 0.6, smudge: 0.14, cross: true },
+};
+
+const pathOf = (poly) => "M" + poly.map((p) => `${r1(p.x)} ${r1(p.y)}`).join("L") + "Z";
+
+function bounds(poly) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const p of poly) {
+    x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y);
+    x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y);
+  }
+  return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
+}
+
+// Graphite shading: a soft finger smudge underneath, then quick diagonal
+// hatching that stops short of, or slightly crosses, the outline. If `clear`
+// is given, the shading is rubbed out behind it (where the label sits), the
+// way an artist lifts graphite with an eraser so text stays readable.
+function shading(area, level, rng, pencil, { id, clear } = {}) {
+  const s = SHADE[level];
+  if (!s || !area) return "";
+  const inner = insetPolygon(area, 3);
+  let out = `<path d="${pathOf(insetPolygon(area, 6))}" fill="${GRAPHITE}" opacity="${s.smudge}" filter="url(#pc-smudge)"/>`;
+  out += hatch(inner, rng, pencil, s, rng.range(52, 62));
+  if (s.cross) out += hatch(inner, rng, pencil, { ...s, opacity: s.opacity * 0.7, spacing: s.spacing * 1.4 }, rng.range(-62, -52) + 180);
+  if (!clear) return out;
+  const m = `pc-clear-${id}`;
+  const b = bounds(area);
+  const pad = 10;
+  const box = `x="${r1(b.x - pad)}" y="${r1(b.y - pad)}" width="${r1(b.width + 2 * pad)}" height="${r1(b.height + 2 * pad)}"`;
+  return `<mask id="${m}" maskUnits="userSpaceOnUse" ${box}><rect ${box} fill="#fff"/>` +
+    `<rect x="${r1(clear.x)}" y="${r1(clear.y)}" width="${r1(clear.width)}" height="${r1(clear.height)}" rx="${r1(clear.height / 2)}" fill="#000" fill-opacity="${level === "light" ? 0.6 : 0.85}" filter="url(#pc-soft)" transform="rotate(${r1(rng.range(-3, 3))} ${r1(clear.x + clear.width / 2)} ${r1(clear.y + clear.height / 2)})"/>` +
+    `</mask><g mask="url(#${m})">${out}</g>`;
+}
+
+// A large, soft tone for group backgrounds: smudge only, no hatching.
+function tone(poly, level, strength = 1) {
+  const s = SHADE[level];
+  if (!s) return "";
+  return `<path d="${pathOf(insetPolygon(poly, 8))}" fill="${GRAPHITE}" opacity="${r1(s.smudge * 0.7 * strength * 1000) / 1000}" filter="url(#pc-smudge)"/>`;
+}
+
+function hatch(poly, rng, pencil, s, angleDeg) {
+  let out = "";
+  const b = bounds(poly);
+  const diag = Math.hypot(b.width, b.height);
+  const cx = b.x + b.width / 2, cy = b.y + b.height / 2;
+  const base = (angleDeg * Math.PI) / 180;
+  const nx = -Math.sin(base), ny = Math.cos(base);
+  // The hand drifts: angle and spacing wander slowly rather than jumping.
+  let drift = 0;
+  for (let k = -diag / 2; k <= diag / 2; k += s.spacing * rng.range(0.7, 1.3)) {
+    drift = drift * 0.8 + rng.range(-0.03, 0.03);
+    const a = base + drift;
+    const d = { x: Math.cos(a), y: Math.sin(a) };
+    const p = { x: cx + nx * k, y: cy + ny * k };
+    for (const hit of clipToPolygon(poly, p, d)) {
+      // Each end lands a bit inside or outside the edge.
+      const t0 = hit[0] + rng.range(-1, 4), t1 = hit[1] - rng.range(-1, 4);
+      if (t1 - t0 < 6) continue;
+      const a0 = { x: p.x + d.x * t0, y: p.y + d.y * t0 }, a1 = { x: p.x + d.x * t1, y: p.y + d.y * t1 };
+      // A quick flick of the wrist curves the stroke slightly.
+      const bend = rng.range(-0.04, 0.04) * (t1 - t0);
+      const c = { x: (a0.x + a1.x) / 2 - d.y * bend, y: (a0.y + a1.y) / 2 + d.x * bend };
+      const opacity = s.opacity * rng.range(0.65, 1.15);
+      const curve = (t) => {
+        const u = 1 - t;
+        return { x: u * u * a0.x + 2 * u * t * c.x + t * t * a1.x, y: u * u * a0.y + 2 * u * t * c.y + t * t * a1.y };
+      };
+      out += `<path d="${strokeOutline(curve, rng, { width: pencil.width * rng.range(0.55, 0.8), overshoot: 0, wobble: 0.25, taperIn: 0.12, taperOut: 0.4 })}" fill-opacity="${r1(opacity * 100) / 100}"/>`;
+    }
+  }
+  return out;
+}
+
+// The ghost of a line that was drawn and rubbed out, plus the grey haze the
+// eraser leaves behind.
+function eraserMark(rect, rng, pencil) {
+  const side = rng.int(0, 3);
+  const off = rng.range(5, 10);
+  const { x, y, width: w, height: h } = rect;
+  const k = rng.range(0.15, 0.45);
+  const seg = [
+    [{ x: x + w * k, y: y - off }, { x: x + w * (k + 0.5), y: y - off - rng.range(-2, 2) }],
+    [{ x: x + w + off, y: y + h * k }, { x: x + w + off + rng.range(-2, 2), y: y + h * (k + 0.5) }],
+    [{ x: x + w * k, y: y + h + off }, { x: x + w * (k + 0.5), y: y + h + off + rng.range(-2, 2) }],
+    [{ x: x - off, y: y + h * k }, { x: x - off - rng.range(-2, 2), y: y + h * (k + 0.5) }],
+  ][side];
+  const mid = { x: (seg[0].x + seg[1].x) / 2, y: (seg[0].y + seg[1].y) / 2 };
+  const ang = (Math.atan2(seg[1].y - seg[0].y, seg[1].x - seg[0].x) * 180) / Math.PI;
+  const span = Math.hypot(seg[1].x - seg[0].x, seg[1].y - seg[0].y);
+  return `<g filter="url(#pc-erased)" opacity="0.28"><path d="${strokeOutline(line(seg[0], seg[1]), rng, { width: pencil.width * 1.1 })}"/></g>` +
+    `<ellipse cx="${r1(mid.x)}" cy="${r1(mid.y)}" rx="${r1(span * 0.6)}" ry="${r1(rng.range(6, 10))}" transform="rotate(${r1(ang + rng.range(-6, 6))} ${r1(mid.x)} ${r1(mid.y)})" fill="${GRAPHITE}" opacity="0.035" filter="url(#pc-smudge)"/>`;
+}
+
+return { SHAPES, shading, tone, eraserMark };
+},
+"edges": (load) => {
+// Arrows: choosing a path between two nodes, and drawing it in pencil.
+
+const { line, pencilLine, strokeOutline } = load("stroke");
+const { center, inflate, overlaps, quadPoint, rayExit } = load("geometry");
+
+// Bends to try, in px of sideways bulge at the middle of the arrow. Straight
+// first; otherwise the smallest bend that misses every other node.
+const BENDS = [0, 30, -30, 60, -60, 100, -100, 150, -150, 210, -210];
+
+function pointInRect(p, r) {
+  return p.x > r.x && p.x < r.x + r.width && p.y > r.y && p.y < r.y + r.height;
+}
+
+function crossings(from, ctrl, to, obstacles) {
+  let hits = 0;
+  for (const r of obstacles) {
+    for (let t = 0.04; t <= 0.96; t += 0.04) {
+      if (pointInRect(quadPoint(from, ctrl, to, t), r)) {
+        hits++;
+        break;
+      }
+    }
+  }
+  return hits;
+}
+
+/**
+ * Pick a path for an arrow from node `a` to node `b` (placed nodes with
+ * `rect` and `outline`). `bias` pushes the arrow to one side, used to keep
+ * two arrows between the same pair apart. Returns {from, ctrl, to}.
+ */
+function route(a, b, others, bias, rng) {
+  const ac = center(a.rect), bc = center(b.rect);
+  const dx = bc.x - ac.x, dy = bc.y - ac.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const n = { x: -dy / len, y: dx / len };
+  const mid = { x: (ac.x + bc.x) / 2, y: (ac.y + bc.y) / 2 };
+  const obstacles = others.map((o) => inflate(o.rect, 8));
+
+  let best = null;
+  for (const bend of BENDS) {
+    const bulge = bias + bend;
+    // A quadratic curve's midpoint is (from + 2·ctrl + to) / 4, so a control
+    // point 2·bulge out gives a curve that bulges by `bulge`.
+    const ctrl = { x: mid.x + n.x * 2 * bulge, y: mid.y + n.y * 2 * bulge };
+    const from = push(rayExit(a.outline, ac, ctrl), ctrl, rng.range(6, 10));
+    const to = push(rayExit(b.outline, bc, ctrl), ctrl, rng.range(5, 8));
+    const hits = crossings(from, ctrl, to, obstacles);
+    if (!best || hits < best.hits) best = { from, ctrl, to, hits };
+    if (hits === 0) break;
+  }
+  return best;
+}
+
+function push(p, toward, by) {
+  const dx = toward.x - p.x, dy = toward.y - p.y;
+  const len = Math.hypot(dx, dy) || 1;
+  return { x: p.x + (dx / len) * by, y: p.y + (dy / len) * by };
+}
+
+/**
+ * Where to write an edge label: beside the middle of the arrow, on whichever
+ * side doesn't land on a node. Returns {x, y} for the text baseline centre.
+ */
+function labelSpot(path, width, height, nodes, frames = []) {
+  const { from, ctrl, to } = path;
+  const m = quadPoint(from, ctrl, to, 0.5);
+  const a = quadPoint(from, ctrl, to, 0.45), b = quadPoint(from, ctrl, to, 0.55);
+  const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+  let nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;
+  // Prefer the upper side (or the right side for vertical arrows).
+  if (ny > 0.01 || (Math.abs(ny) <= 0.01 && nx < 0)) { nx = -nx; ny = -ny; }
+  const clear = (p) => {
+    const box = { x: p.x - width / 2 - 3, y: p.y - height * 0.8, width: width + 6, height: height };
+    // Frames (group outlines) may contain the label but not cut through it.
+    const inside = (r) => box.x >= r.x && box.y >= r.y && box.x + box.width <= r.x + r.width && box.y + box.height <= r.y + r.height;
+    return !nodes.some((r) => overlaps(box, r)) && !frames.some((r) => overlaps(box, r) && !inside(r));
+  };
+  for (const dist of [14, 22, 34, 48]) {
+    for (const s of [1, -1]) {
+      // Offset grows with how sideways the text sits relative to the line.
+      const off = dist + Math.abs(nx) * (width / 2);
+      const p = { x: m.x + nx * s * off, y: m.y + ny * s * off + height * 0.3 };
+      if (clear(p)) return { ...p, clear: true };
+    }
+  }
+  return { x: m.x + nx * 14, y: m.y + ny * 14 + height * 0.3, clear: false };
+}
+
+// An arrow along a routed path: a pencil shaft with a little extra sag of its
+// own, and a head made of two flicks out from the tip.
+function drawArrow(path, rng, pencil, { style = "solid", heads = "end" } = {}) {
+  const { from, to } = path;
+  const len = Math.hypot(to.x - from.x, to.y - from.y) || 1;
+  const sag = rng.range(-0.025, 0.025) * len;
+  const ctrl = { x: path.ctrl.x - ((to.y - from.y) / len) * sag, y: path.ctrl.y + ((to.x - from.x) / len) * sag };
+  const shaft = (t) => quadPoint(from, ctrl, to, t);
+
+  let out = "";
+  if (style === "dashed") {
+    const dash = 9, gap = 6;
+    for (let t = 0; t < len; t += dash + gap) {
+      const a = t / len, b = Math.min(1, (t + dash * rng.range(0.8, 1.15)) / len);
+      out += `<path d="${strokeOutline((u) => shaft(a + (b - a) * u), rng, { width: pencil.width, overshoot: 0, wobble: 0.3, taperIn: 0.15, taperOut: 0.3 })}" fill-opacity="${pencil.opacity}"/>`;
+    }
+  } else {
+    out += pencilLine(shaft, rng, pencil, { overshoot: 0, wobble: 0.6, taperIn: 0.04, taperOut: 0.06 });
+  }
+
+  const head = (tip, tangentFrom) => {
+    const ang = Math.atan2(tip.y - tangentFrom.y, tip.x - tangentFrom.x);
+    let s = "";
+    for (const side of [-1, 1]) {
+      const spread = rng.range(0.38, 0.5) * side;
+      const size = rng.range(14, 18);
+      const wing = { x: tip.x - Math.cos(ang + spread) * size, y: tip.y - Math.sin(ang + spread) * size };
+      // Pencil lands at the tip and flicks outwards.
+      s += pencilLine(line(tip, wing), rng, pencil, { passes: 1, overshoot: 1, wobble: 0.3, taperIn: 0.02, taperOut: 0.45, width: 1.15 });
+    }
+    return s;
+  };
+  if (heads === "end" || heads === "both") out += head(to, shaft(0.96));
+  if (heads === "start" || heads === "both") out += head(from, shaft(0.04));
+  return out;
+}
+
+return { route, labelSpot, drawArrow };
+},
+"layout": (load) => {
+// Automatic layout.
+//
+// A small layered ("Sugiyama-style") layout:
+//   1. ranks     each node goes in a column (LR) or row (TB) by how far along
+//                the flow it is; arrows that loop back are ignored for this
+//   2. order     nodes within a rank are sorted to sit near their neighbours,
+//                with members of a group kept together
+//   3. place     ranks are spaced to leave room for arrow labels, and nodes
+//                slide along their rank to line up with their neighbours
+//   4. groups    each group's outline wraps its members and nested groups
+//
+// Work is done in (along, cross) coordinates and mapped to (x, y) at the end,
+// so the same code serves both directions.
+
+const { textWidth } = load("text");
+const { overlaps } = load("geometry");
+
+const NODE_GAP = 46;
+const GROUP_PAD = 22;
+const GROUP_LABEL = 28;
+const EDGE_LABEL_SIZE = 18;
+
+function groupChains(diagram) {
+  const parent = new Map((diagram.groups ?? []).map((g) => [g.id, g.parent]));
+  const chainOf = (gid) => {
+    const chain = [];
+    const seen = new Set();
+    while (gid && parent.has(gid) && !seen.has(gid)) {
+      seen.add(gid);
+      chain.unshift(gid);
+      gid = parent.get(gid);
+    }
+    return chain;
+  };
+  const chains = new Map();
+  for (const n of diagram.nodes) chains.set(n.id, chainOf(n.group));
+  return { chains, chainOf };
+}
+
+// How many group outlines lie between two neighbouring nodes.
+function boundaries(ca, cb) {
+  let i = 0;
+  while (i < ca.length && i < cb.length && ca[i] === cb[i]) i++;
+  return ca.length - i + (cb.length - i);
+}
+
+function assignRanks(ids, edges) {
+  const out = new Map(ids.map((id) => [id, []]));
+  const inn = new Map(ids.map((id) => [id, []]));
+  // Drop edges that close a cycle, found by depth-first search in input order.
+  const state = new Map();
+  const forward = [];
+  const visit = (v) => {
+    state.set(v, 1);
+    for (const e of edges.filter((e) => e.from === v)) {
+      const s = state.get(e.to);
+      if (s === 1) continue; // back edge
+      forward.push(e);
+      if (!s) visit(e.to);
+    }
+    state.set(v, 2);
+  };
+  for (const id of ids) if (!state.has(id)) visit(id);
+  for (const e of forward) {
+    out.get(e.from).push(e.to);
+    inn.get(e.to).push(e.from);
+  }
+
+  const rank = new Map();
+  const rankOf = (v) => {
+    if (rank.has(v)) return rank.get(v);
+    rank.set(v, 0);
+    const r = inn.get(v).length ? Math.max(...inn.get(v).map((u) => rankOf(u) + 1)) : 0;
+    rank.set(v, r);
+    return r;
+  };
+  for (const id of ids) rankOf(id);
+  // Sources sit just before the first node they feed, not all at the start.
+  for (const id of ids) {
+    if (!inn.get(id).length && out.get(id).length) rank.set(id, Math.max(0, Math.min(...out.get(id).map((w) => rank.get(w))) - 1));
+  }
+  return rank;
+}
+
+function layout(diagram, sizes, { top = 0, margin = 60 } = {}) {
+  const ids = diagram.nodes.map((n) => n.id);
+  const known = new Set(ids);
+  const edges = (diagram.edges ?? []).filter((e) => known.has(e.from) && known.has(e.to) && e.from !== e.to);
+  const { chains } = groupChains(diagram);
+  const vertical = diagram.direction === "TB";
+  const rects = new Map();
+
+  if (diagram.nodes.every((n) => n.position)) {
+    for (const n of diagram.nodes) {
+      const s = sizes.get(n.id);
+      rects.set(n.id, { x: n.position.x - s.width / 2, y: n.position.y - s.height / 2, ...s });
+    }
+  } else {
+    autoPlace(diagram, ids, edges, chains, sizes, vertical, rects);
+  }
+
+  separateGroups(diagram, rects, chains, vertical);
+  let groups = groupRects(diagram, rects, chains);
+  nudgeOutOfGroups(diagram, rects, chains, vertical, () => (groups = groupRects(diagram, rects, chains)));
+  groups = groupRects(diagram, rects, chains);
+
+  // Move everything so the drawing starts at the margin.
+  const all = [...rects.values(), ...groups.values()];
+  const minX = Math.min(...all.map((r) => r.x)), minY = Math.min(...all.map((r) => r.y));
+  const dx = margin - minX, dy = margin + top - minY;
+  for (const r of all) { r.x += dx; r.y += dy; }
+  const width = Math.ceil(Math.max(...all.map((r) => r.x + r.width)) + margin);
+  const height = Math.ceil(Math.max(...all.map((r) => r.y + r.height)) + margin);
+  return { rects, groups, width, height };
+}
+
+function autoPlace(diagram, ids, edges, chains, sizes, vertical, rects) {
+  // With no arrows at all there is no flow to follow: lay nodes out in a line.
+  const rank = edges.length ? assignRanks(ids, edges) : new Map(ids.map((id, i) => [id, i]));
+  const nRanks = Math.max(...rank.values()) + 1;
+  const along = (id) => (vertical ? sizes.get(id).height : sizes.get(id).width);
+  const cross = (id) => (vertical ? sizes.get(id).width : sizes.get(id).height);
+
+  const neighbours = new Map(ids.map((id) => [id, []]));
+  for (const e of edges) {
+    neighbours.get(e.from).push(e.to);
+    neighbours.get(e.to).push(e.from);
+  }
+
+  // 2. Order within ranks. Sweep down then up, one rank at a time, sorting
+  // each rank by where its neighbours in the rank just visited sit. Keep the
+  // ordering with the fewest crossings seen.
+  const ranks = Array.from({ length: nRanks }, () => []);
+  for (const id of ids) ranks[rank.get(id)].push(id);
+  const pos = new Map();
+  const index = (r) => r.forEach((id, i) => pos.set(id, i - (r.length - 1) / 2));
+  ranks.forEach(index);
+
+  const cmpFor = (key) => {
+    // A group's key is the average of its members', so whole groups keep the
+    // same order in every rank.
+    const gsum = new Map();
+    for (const id of ids) for (const g of chains.get(id)) {
+      const t = gsum.get(g) ?? { s: 0, n: 0 };
+      t.s += key.get(id) ?? pos.get(id); t.n++;
+      gsum.set(g, t);
+    }
+    const gkey = (g) => gsum.get(g).s / gsum.get(g).n;
+    return (a, b) => {
+      const ca = chains.get(a), cb = chains.get(b);
+      for (let d = 0; ; d++) {
+        const ea = ca[d], eb = cb[d];
+        if (ea && eb && ea === eb) continue;
+        const ka = ea ? gkey(ea) : key.get(a), kb = eb ? gkey(eb) : key.get(b);
+        if (ka !== kb) return ka - kb;
+        return (ea ?? a) < (eb ?? b) ? -1 : 1;
+      }
+    };
+  };
+
+  // Crossings between arrows whose rank spans overlap, judged by which side
+  // of each other they are on at both ends of the overlap.
+  const spans = edges.map((e) => {
+    const [a, b] = rank.get(e.from) <= rank.get(e.to) ? [e.from, e.to] : [e.to, e.from];
+    return { a, b, ra: rank.get(a), rb: rank.get(b) };
+  }).filter((e) => e.ra < e.rb);
+  const at = (e, r) => pos.get(e.a) + ((pos.get(e.b) - pos.get(e.a)) * (r - e.ra)) / (e.rb - e.ra);
+  const crossings = () => {
+    let n = 0;
+    for (let i = 0; i < spans.length; i++)
+      for (let j = i + 1; j < spans.length; j++) {
+        const e = spans[i], f = spans[j];
+        if (e.a === f.a || e.b === f.b || e.a === f.b || e.b === f.a) continue;
+        const lo = Math.max(e.ra, f.ra), hi = Math.min(e.rb, f.rb);
+        if (lo >= hi) continue;
+        if ((at(e, lo) - at(f, lo)) * (at(e, hi) - at(f, hi)) < 0) n++;
+      }
+    return n;
+  };
+
+  let best = { n: crossings(), order: ranks.map((r) => [...r]) };
+  for (let sweep = 0; sweep < 12 && best.n > 0; sweep++) {
+    const down = sweep % 2 === 0;
+    const order = down ? [...ranks.keys()].slice(1) : [...ranks.keys()].reverse().slice(1);
+    for (const r of order) {
+      const key = new Map();
+      for (const id of ranks[r]) {
+        const nb = neighbours.get(id).filter((w) => (down ? rank.get(w) < r : rank.get(w) > r));
+        if (nb.length) key.set(id, nb.reduce((sum, w) => sum + pos.get(w), 0) / nb.length);
+        else key.set(id, pos.get(id));
+      }
+      ranks[r].sort(cmpFor(key));
+      index(ranks[r]);
+    }
+    const n = crossings();
+    if (n < best.n) best = { n, order: ranks.map((r) => [...r]) };
+  }
+  best.order.forEach((r, i) => { ranks[i] = r; index(r); });
+
+  // 3a. Space the ranks: wide enough for the longest arrow label crossing the gap.
+  const gapAfter = new Array(nRanks).fill(vertical ? 90 : 110);
+  for (const e of edges) {
+    if (!e.label) continue;
+    const ra = rank.get(e.from), rb = rank.get(e.to);
+    if (ra === rb) continue;
+    const need = vertical ? EDGE_LABEL_SIZE * 2.6 : textWidth(e.label, EDGE_LABEL_SIZE) + 50;
+    const r = Math.min(ra, rb);
+    gapAfter[r] = Math.max(gapAfter[r], need);
+  }
+  const maxDepth = Math.max(0, ...[...chains.values()].map((c) => c.length));
+  const groupRoom = maxDepth ? GROUP_PAD + (vertical ? GROUP_LABEL : 0) : 0;
+  const rankPos = [];
+  let a = 0;
+  for (let r = 0; r < nRanks; r++) {
+    const size = Math.max(...ranks[r].map(along));
+    rankPos.push(a + size / 2);
+    a += size + gapAfter[r] + groupRoom;
+  }
+
+  // 3b. Slide nodes along their rank. Minimum spacing between neighbours
+  // grows with the group outlines (and LR group labels) between them.
+  const sep = (p, q) => {
+    const cp = chains.get(p), cq = chains.get(q);
+    let i = 0;
+    while (i < cp.length && i < cq.length && cp[i] === cq[i]) i++;
+    const entered = cq.length - i;
+    return cross(p) / 2 + cross(q) / 2 + NODE_GAP + GROUP_PAD * boundaries(cp, cq) + (vertical ? 0 : GROUP_LABEL * entered);
+  };
+  const c = new Map();
+  for (const r of ranks) {
+    let y = 0;
+    r.forEach((id, i) => {
+      y = i === 0 ? 0 : y + sep(r[i - 1], id);
+      c.set(id, y);
+    });
+    const mid = y / 2;
+    for (const id of r) c.set(id, c.get(id) - mid);
+  }
+  for (let pass = 0; pass < 12; pass++) {
+    const order = pass % 2 ? [...ranks].reverse() : ranks;
+    for (const r of order) {
+      const want = r.map((id) => {
+        const nb = neighbours.get(id).filter((w) => rank.get(w) !== rank.get(id));
+        return nb.length ? nb.reduce((s, w) => s + c.get(w), 0) / nb.length : c.get(id);
+      });
+      const placed = [];
+      r.forEach((id, i) => {
+        placed.push(i === 0 ? want[0] : Math.max(want[i], placed[i - 1] + sep(r[i - 1], id)));
+      });
+      // Shift the whole rank back so, on average, nodes sit where they want.
+      const shift = placed.reduce((s, p, i) => s + (want[i] - p), 0) / placed.length;
+      r.forEach((id, i) => c.set(id, placed[i] + shift));
+    }
+  }
+
+  for (const id of ids) {
+    const s = sizes.get(id);
+    const al = rankPos[rank.get(id)], cr = c.get(id);
+    rects.set(id, vertical
+      ? { x: cr - s.width / 2, y: al - s.height / 2, ...s }
+      : { x: al - s.width / 2, y: cr - s.height / 2, ...s });
+  }
+}
+
+// Outline for each group: around its members and nested groups, with room
+// for the label at the top. Empty groups get no outline.
+function groupRects(diagram, rects, chains) {
+  const out = new Map();
+  const groups = diagram.groups ?? [];
+  const depth = (g) => {
+    let d = 0, p = g.parent;
+    const seen = new Set();
+    while (p && !seen.has(p)) { seen.add(p); d++; p = groups.find((x) => x.id === p)?.parent; }
+    return d;
+  };
+  for (const g of [...groups].sort((p, q) => depth(q) - depth(p))) {
+    const inside = [];
+    for (const n of diagram.nodes) if (chains.get(n.id).includes(g.id)) inside.push(rects.get(n.id));
+    for (const h of groups) if (h.parent === g.id && out.has(h.id)) inside.push(out.get(h.id));
+    if (!inside.length) continue;
+    const x0 = Math.min(...inside.map((r) => r.x)) - GROUP_PAD;
+    const y0 = Math.min(...inside.map((r) => r.y)) - GROUP_PAD - GROUP_LABEL;
+    const x1 = Math.max(...inside.map((r) => r.x + r.width)) + GROUP_PAD;
+    const y1 = Math.max(...inside.map((r) => r.y + r.height)) + GROUP_PAD;
+    out.set(g.id, { x: x0, y: y0, width: x1 - x0, height: y1 - y0 });
+  }
+  return out;
+}
+
+// Two groups side by side in the flow can't share space: a group spans every
+// rank its members are in, so sibling groups that overlap are moved apart
+// across the flow, together with everything beyond them.
+function separateGroups(diagram, rects, chains, vertical) {
+  const parent = new Map((diagram.groups ?? []).map((g) => [g.id, g.parent]));
+  const key = vertical ? "x" : "y", size = vertical ? "width" : "height";
+  for (let round = 0; round < 30; round++) {
+    const groups = groupRects(diagram, rects, chains);
+    const list = [...groups.keys()];
+    let moved = false;
+    for (let i = 0; i < list.length && !moved; i++) {
+      for (let j = i + 1; j < list.length && !moved; j++) {
+        const g = list[i], h = list[j];
+        if (parent.get(g) !== parent.get(h)) continue;
+        const rg = groups.get(g), rh = groups.get(h);
+        if (!overlaps(rg, rh)) continue;
+        const [first, second] = rg[key] + rg[size] / 2 <= rh[key] + rh[size] / 2 ? [g, h] : [h, g];
+        const ra = groups.get(first), rb = groups.get(second);
+        const delta = ra[key] + ra[size] + 18 - rb[key];
+        for (const n of diagram.nodes) {
+          const c = chains.get(n.id), r = rects.get(n.id);
+          if (c.includes(first)) continue;
+          if (c.includes(second) || r[key] + r[size] / 2 >= rb[key]) r[key] += delta;
+        }
+        moved = true;
+      }
+    }
+    if (!moved) return;
+  }
+}
+
+// A node that isn't in a group but ended up inside its outline is pushed
+// out sideways, along with the nodes beyond it in the same rank.
+function nudgeOutOfGroups(diagram, rects, chains, vertical, refresh) {
+  for (let round = 0; round < 20; round++) {
+    const groups = groupRects(diagram, rects, chains);
+    let moved = false;
+    for (const [gid, gr] of groups) {
+      for (const n of diagram.nodes) {
+        if (chains.get(n.id).includes(gid)) continue;
+        const r = rects.get(n.id);
+        if (!overlaps(r, gr)) continue;
+        const key = vertical ? "x" : "y";
+        const size = vertical ? "width" : "height";
+        const nodeMid = r[key] + r[size] / 2, groupMid = gr[key] + gr[size] / 2;
+        const down = nodeMid >= groupMid;
+        const delta = down ? gr[key] + gr[size] + 16 - r[key] : gr[key] - 16 - (r[key] + r[size]);
+        const along = vertical ? "y" : "x";
+        for (const m of rects.values()) {
+          const sameRank = Math.abs(m[along] + (vertical ? m.height : m.width) / 2 - (r[along] + (vertical ? r.height : r.width) / 2)) < 1;
+          if (sameRank && (down ? m[key] >= r[key] : m[key] <= r[key])) m[key] += delta;
+        }
+        moved = true;
+      }
+    }
+    refresh();
+    if (!moved) return;
+  }
+}
+
+return { groupChains, layout, groupRects };
+},
+"render": (load) => {
+// Diagram JSON -> pencil-drawn SVG.
+
+const { createRandom } = load("random");
+const { PENCILS, strokeOutline } = load("stroke");
+const { GRAPHITE, PAPER_STYLES, background, defs } = load("paper");
+const { SHAPES, eraserMark, shading, tone } = load("shapes");
+const { drawArrow, labelSpot, route } = load("edges");
+const { layout } = load("layout");
+const { ellipsePoints, polyline, quadPoint, r1 } = load("geometry");
+const { FONT_FAMILY, escapeXml, fontFaceCss, measureLines, textWidth } = load("text");
+
+const LABEL_SIZE = 24;
+const SUBLABEL_SIZE = 17;
+const EDGE_LABEL_SIZE = 18;
+const GROUP_LABEL_SIZE = 20;
+const TITLE_SIZE = 32;
+const MARGIN = 50;
+
+function labelBlock(node) {
+  const lines = node.label.split("\n");
+  let width = measureLines(lines, LABEL_SIZE);
+  let height = lines.length * LABEL_SIZE * 1.05;
+  if (node.sublabel) {
+    width = Math.max(width, measureLines([node.sublabel], SUBLABEL_SIZE));
+    height += SUBLABEL_SIZE * 1.2;
+  }
+  return { lines, width, height };
+}
+
+const shapeOf = (node) => SHAPES[node.shape ?? "box"] ?? SHAPES.box;
+
+function text(x, y, str, size, rng, extra = "") {
+  const rot = r1(rng.range(-1.5, 1.5));
+  return `<text x="${r1(x)}" y="${r1(y)}" font-size="${size}" transform="rotate(${rot} ${r1(x)} ${r1(y)})"${extra}>${escapeXml(str)}</text>`;
+}
+
+function nodeLabel(node, block, at, rng) {
+  const lh = LABEL_SIZE * 1.05;
+  const cx = at.x + rng.range(-2, 2);
+  let y = at.y - block.height / 2 + LABEL_SIZE * 0.78;
+  let out = "";
+  for (const l of block.lines) {
+    out += text(cx, y, l, LABEL_SIZE, rng);
+    y += lh;
+  }
+  if (node.sublabel) out += text(cx, y + SUBLABEL_SIZE * 0.1, node.sublabel, SUBLABEL_SIZE, rng, ` fill-opacity="0.7"`);
+  return out;
+}
+
+// A group outline: a rounded rectangle drawn in quick, uneven dashes.
+function groupOutline(rect, rng, pencil) {
+  const r = 12;
+  const { x, y, width: w, height: h } = rect;
+  const pts = [];
+  for (const [cx, cy, a] of [[x + w - r, y + r, -Math.PI / 2], [x + w - r, y + h - r, 0], [x + r, y + h - r, Math.PI / 2], [x + r, y + r, Math.PI]]) {
+    pts.push(...ellipsePoints(cx, cy, r, r, a, a + Math.PI / 2, 6));
+  }
+  pts.push(pts[0]);
+  const path = polyline(pts);
+  const total = 2 * (w + h);
+  let out = "";
+  for (let d = rng.range(0, 8); d < total; ) {
+    const dash = rng.range(10, 16), gap = rng.range(6, 9);
+    const a = d / total, b = Math.min(1, (d + dash) / total);
+    out += `<path d="${strokeOutline((u) => path(a + (b - a) * u), rng, { width: pencil.width * 0.85, overshoot: 0, wobble: 0.35, taperIn: 0.15, taperOut: 0.3 })}" fill-opacity="${r1(pencil.opacity * 85) / 100}"/>`;
+    d += dash + gap;
+  }
+  return out;
+}
+
+/**
+ * Work out where everything goes, without drawing anything: node sizes and
+ * positions, group outlines, arrow paths, label spots and the page size.
+ * The validator inspects this, and render() draws from it, so both always
+ * agree. Layout randomness (cloud bumps, arrow end gaps) comes from its own
+ * seeded stream, separate from the drawing's.
+ */
+function plan(diagram, options = {}) {
+  const seed = options.seed ?? diagram.paper?.seed ?? Math.floor(Math.random() * 2 ** 32);
+  const rng = createRandom(seed);
+
+  const blocks = new Map(diagram.nodes.map((n) => [n.id, labelBlock(n)]));
+  const sizes = new Map(diagram.nodes.map((n) => [n.id, n.size ?? shapeOf(n).size(blocks.get(n.id))]));
+  const titleRoom = diagram.title ? TITLE_SIZE * 1.8 : 0;
+  const { rects, groups, width: layoutWidth, height } = layout(diagram, sizes, { top: titleRoom, margin: MARGIN });
+  const width = diagram.title ? Math.max(layoutWidth, Math.ceil(textWidth(diagram.title, TITLE_SIZE) + 2 * MARGIN)) : layoutWidth;
+
+  const placed = new Map();
+  for (const n of diagram.nodes) placed.set(n.id, { rect: rects.get(n.id), ...shapeOf(n).place(rects.get(n.id), rng) });
+
+  const groupList = (diagram.groups ?? []).filter((g) => groups.has(g.id));
+  // Group labels are kept clear of arrows and arrow labels.
+  const groupLabels = groupList.map((g) => {
+    const gr = groups.get(g.id);
+    return { id: g.id, rect: { x: gr.x + 8, y: gr.y + 4, width: textWidth(g.label, GROUP_LABEL_SIZE) + 14, height: GROUP_LABEL_SIZE + 6 } };
+  });
+
+  // Arrows between the same two nodes are spread apart.
+  const edges = (diagram.edges ?? []).filter((e) => placed.has(e.from) && placed.has(e.to) && e.from !== e.to);
+  const pairKey = (e) => (e.from < e.to ? `${e.from}\u0000${e.to}` : `${e.to}\u0000${e.from}`);
+  const pairs = new Map();
+  for (const e of edges) pairs.set(pairKey(e), [...(pairs.get(pairKey(e)) ?? []), e]);
+  const nodeRects = [...rects.values()];
+  const extents = [];
+  const arrows = [];
+  const takenLabels = [];
+  for (const e of edges) {
+    const group = pairs.get(pairKey(e));
+    const i = group.indexOf(e);
+    const flip = e.from < e.to ? 1 : -1;
+    const bias = group.length > 1 ? (i - (group.length - 1) / 2) * 40 * flip : 0;
+    const others = [...diagram.nodes.filter((n) => n.id !== e.from && n.id !== e.to).map((n) => placed.get(n.id)), ...groupLabels];
+    const path = route(placed.get(e.from), placed.get(e.to), others, bias, rng);
+    for (let t = 0; t <= 1; t += 0.1) extents.push(quadPoint(path.from, path.ctrl, path.to, t));
+    const arrow = { edge: e, path, label: null };
+    if (e.label) {
+      const w = textWidth(e.label, EDGE_LABEL_SIZE);
+      const spot = labelSpot(path, w, EDGE_LABEL_SIZE, [...nodeRects, ...groupLabels.map((l) => l.rect), ...takenLabels], [...groups.values()]);
+      const box = { x: spot.x - w / 2, y: spot.y - EDGE_LABEL_SIZE * 0.8, width: w, height: EDGE_LABEL_SIZE };
+      takenLabels.push(box);
+      arrow.label = { at: spot, box, clear: spot.clear };
+    }
+    arrows.push(arrow);
+  }
+
+  // Bent arrows and their labels can reach past the nodes: grow the page so
+  // nothing is cut off.
+  for (const b of takenLabels) extents.push({ x: b.x, y: b.y }, { x: b.x + b.width, y: b.y + b.height });
+  const pad = MARGIN * 0.6;
+  const minX = Math.min(0, ...extents.map((p) => p.x - pad)), minY = Math.min(0, ...extents.map((p) => p.y - pad));
+  const maxX = Math.max(width, ...extents.map((p) => p.x + pad)), maxY = Math.max(height, ...extents.map((p) => p.y + pad));
+
+  return {
+    seed, blocks, sizes, rects, groups, groupList, groupLabels, placed, arrows, width,
+    page: { x: minX, y: minY, width: Math.ceil(maxX - minX), height: Math.ceil(maxY - minY) },
+  };
+}
+
+function render(diagram, options = {}) {
+  const p = plan(diagram, options);
+  const { seed, blocks, rects, groups, groupList, placed, page } = p;
+  // Drawing randomness: a second stream, so changing how something is drawn
+  // never moves the layout.
+  const rng = createRandom((seed ^ 0x9e3779b9) >>> 0);
+  const pencil = PENCILS[diagram.paper?.pencil ?? "2B"];
+  const paperStyle = PAPER_STYLES[options.paperStyle ?? diagram.paper?.style ?? "clean"] ?? PAPER_STYLES.clean;
+
+  let back = "", shade = "", lines = "", labels = "", erased = "";
+
+  for (const g of groupList) {
+    const gr = groups.get(g.id);
+    if (g.shade && g.shade !== "none") {
+      back += tone([{ x: gr.x, y: gr.y }, { x: gr.x + gr.width, y: gr.y }, { x: gr.x + gr.width, y: gr.y + gr.height }, { x: gr.x, y: gr.y + gr.height }], g.shade, paperStyle.groupTone);
+    }
+    lines += groupOutline(gr, rng, pencil);
+    labels += text(gr.x + 14, gr.y + GROUP_LABEL_SIZE + 4, g.label.replace(/\n/g, " "), GROUP_LABEL_SIZE, rng, ` text-anchor="start" fill-opacity="0.8"`);
+  }
+
+  for (const n of diagram.nodes) {
+    const pn = placed.get(n.id);
+    const block = blocks.get(n.id);
+    if (n.shade && n.shade !== "none" && pn.shadeArea) {
+      const clear = { x: pn.label.x - block.width / 2 - 11, y: pn.label.y - block.height / 2 - 4, width: block.width + 22, height: block.height + 8 };
+      shade += shading(pn.shadeArea, n.shade, rng, pencil, { id: n.id, clear });
+    }
+    lines += pn.draw(rng, pencil);
+    labels += nodeLabel(n, block, pn.label, rng);
+  }
+
+  for (const a of p.arrows) {
+    lines += drawArrow(a.path, rng, pencil, { style: a.edge.style, heads: a.edge.arrow ?? "end" });
+    if (a.label) labels += text(a.label.at.x, a.label.at.y, a.edge.label, EDGE_LABEL_SIZE, rng, ` fill-opacity="0.85"`);
+  }
+
+  if (diagram.paper?.eraserMarks ?? true) {
+    const count = Math.min(diagram.nodes.length, rng.int(1, 2));
+    for (let i = 0; i < count; i++) erased += eraserMark(rects.get(diagram.nodes[rng.int(0, diagram.nodes.length - 1)].id), rng, pencil);
+  }
+
+  if (diagram.title) labels += text(p.width / 2, MARGIN + TITLE_SIZE * 0.7, diagram.title, TITLE_SIZE, rng);
+
+  const { x, y, width: W, height: H } = page;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="${r1(x)} ${r1(y)} ${W} ${H}">
+<style>${fontFaceCss()} text{font-family:${FONT_FAMILY},cursive;text-anchor:middle;fill:${GRAPHITE}}</style>
+<defs>${defs(seed, paperStyle)}</defs>
+<g transform="translate(${r1(x)} ${r1(y)})">${background(W, H, diagram.paper?.texture, paperStyle)}</g>
+<g fill="${GRAPHITE}">${back}${erased}</g>
+<g fill="${GRAPHITE}" filter="url(#pc-graphite)">${shade}${lines}${labels}</g>
+</svg>
+`;
+}
+
+return { plan, render };
+},
+"validate": (load) => {
+// Validator: is this diagram input correct, and will it draw well?
+//
+// Three layers, each only run if the one before found no errors:
+//   1. schema     the JSON matches schema/architecture.schema.json (checked by
+//                 a small built-in interpreter, so there are no dependencies
+//                 and the schema file stays the single source of truth)
+//   2. references ids are unique, arrows and groups point at things that
+//                 exist, group nesting has no loops
+//   3. layout     lay the diagram out exactly as render() would and look for
+//                 things that will draw badly: overlaps, arrows through nodes,
+//                 crossing arrows, crowded labels
+//
+// Errors mean the input can't be drawn as written. Warnings mean it can, but
+// probably won't look the way the author wants. Every message says what to
+// change, because the reader is often an agent fixing its own output.
+
+const { SCHEMA } = load("assets");
+const { plan } = load("render");
+const { overlaps, quadPoint } = load("geometry");
+const { measureLines } = load("text");
+
+const LABEL_SIZE = 24;
+
+// ---------------------------------------------------------------- 1. schema
+
+function typeOf(v) {
+  if (v === null) return "null";
+  if (Array.isArray(v)) return "array";
+  if (Number.isInteger(v)) return "integer";
+  return typeof v;
+}
+
+function typeMatches(v, type) {
+  const t = typeOf(v);
+  return t === type || (type === "number" && t === "integer");
+}
+
+function editDistance(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...new Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++)
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+
+function closest(word, options) {
+  let best = null, bestD = 3;
+  for (const o of options) {
+    const dist = editDistance(word.toLowerCase(), String(o).toLowerCase());
+    if (dist < bestD) { best = o; bestD = dist; }
+  }
+  return best;
+}
+
+const show = (v) => JSON.stringify(v);
+const join = (path, key) => (typeof key === "number" ? `${path}[${key}]` : path ? `${path}.${key}` : key);
+
+function resolve(schema) {
+  while (schema.$ref) schema = schema.$ref.slice(2).split("/").reduce((o, k) => o[k], SCHEMA);
+  return schema;
+}
+
+function checkSchema(value, schema, path, errors) {
+  schema = resolve(schema);
+  const at = path || "(top level)";
+  for (const sub of schema.allOf ?? []) checkSchema(value, sub, path, errors);
+
+  if ("const" in schema && value !== schema.const) {
+    errors.push({ path: at, code: "schema", message: `must be ${show(schema.const)} (got ${show(value)})` });
+    return;
+  }
+  if (schema.enum && !schema.enum.includes(value)) {
+    const guess = typeof value === "string" ? closest(value, schema.enum) : null;
+    errors.push({ path: at, code: "schema", message: `must be one of ${schema.enum.join(", ")} (got ${show(value)})${guess ? `; did you mean "${guess}"?` : ""}` });
+    return;
+  }
+  if (schema.type && !typeMatches(value, schema.type)) {
+    errors.push({ path: at, code: "schema", message: `must be ${schema.type === "array" || schema.type === "object" || schema.type === "integer" ? "an" : "a"} ${schema.type} (got ${typeOf(value)})` });
+    return;
+  }
+
+  if (typeof value === "string") {
+    const len = [...value].length;
+    if (schema.minLength != null && len < schema.minLength) errors.push({ path: at, code: "schema", message: schema.minLength === 1 ? "must not be empty" : `must be at least ${schema.minLength} characters` });
+    if (schema.maxLength != null && len > schema.maxLength) errors.push({ path: at, code: "schema", message: `must be at most ${schema.maxLength} characters (got ${len}); shorten it or move detail into a sublabel` });
+    if (schema.pattern && !new RegExp(schema.pattern, "u").test(value)) {
+      const isId = schema.pattern === SCHEMA.$defs.id.pattern;
+      errors.push({ path: at, code: "schema", message: isId ? `${show(value)} is not a valid id: start with a letter, then use letters, digits, '_' or '-' (max 40)` : `${show(value)} must match ${schema.pattern}` });
+    }
+  }
+  if (typeof value === "number") {
+    if (schema.minimum != null && value < schema.minimum) errors.push({ path: at, code: "schema", message: `must be at least ${schema.minimum} (got ${value})` });
+    if (schema.maximum != null && value > schema.maximum) errors.push({ path: at, code: "schema", message: `must be at most ${schema.maximum} (got ${value})` });
+  }
+  if (Array.isArray(value)) {
+    if (schema.minItems != null && value.length < schema.minItems) errors.push({ path: at, code: "schema", message: schema.minItems === 1 ? "must have at least one item" : `must have at least ${schema.minItems} items` });
+    if (schema.maxItems != null && value.length > schema.maxItems) errors.push({ path: at, code: "schema", message: `must have at most ${schema.maxItems} items (got ${value.length}); split the diagram into smaller ones` });
+    if (schema.items) value.forEach((item, i) => checkSchema(item, schema.items, join(path, i), errors));
+  }
+  if (typeOf(value) === "object") {
+    for (const key of schema.required ?? []) {
+      if (!(key in value)) errors.push({ path: at, code: "schema", message: `missing required field "${key}"` });
+    }
+    const props = schema.properties ?? {};
+    for (const [key, v] of Object.entries(value)) {
+      if (key in props) checkSchema(v, props[key], join(path, key), errors);
+      else if (schema.additionalProperties === false) {
+        const guess = closest(key, Object.keys(props));
+        errors.push({ path: at, code: "schema", message: `unknown field "${key}"${guess ? `; did you mean "${guess}"?` : ` (allowed: ${Object.keys(props).join(", ")})`}` });
+      }
+    }
+  }
+}
+
+// ------------------------------------------------------------ 2. references
+
+function checkReferences(d, errors, warnings) {
+  const nodeIds = new Set(), groupIds = new Set();
+  const seen = new Map();
+  d.nodes.forEach((n, i) => {
+    if (seen.has(n.id)) errors.push({ path: `nodes[${i}].id`, code: "duplicate-id", message: `id "${n.id}" is already used by ${seen.get(n.id)}; ids must be unique across nodes and groups` });
+    else seen.set(n.id, `nodes[${i}]`);
+    nodeIds.add(n.id);
+  });
+  (d.groups ?? []).forEach((g, i) => {
+    if (seen.has(g.id)) errors.push({ path: `groups[${i}].id`, code: "duplicate-id", message: `id "${g.id}" is already used by ${seen.get(g.id)}; ids must be unique across nodes and groups` });
+    else seen.set(g.id, `groups[${i}]`);
+    groupIds.add(g.id);
+  });
+
+  const suggest = (id, pool) => {
+    const g = closest(id, [...pool]);
+    return g ? `. Did you mean "${g}"?` : "";
+  };
+
+  d.nodes.forEach((n, i) => {
+    if (n.group == null) return;
+    if (nodeIds.has(n.group)) errors.push({ path: `nodes[${i}].group`, code: "unknown-group", message: `"${n.group}" is a node, not a group; a node can only sit inside a group` });
+    else if (!groupIds.has(n.group)) errors.push({ path: `nodes[${i}].group`, code: "unknown-group", message: `no group with id "${n.group}"${suggest(n.group, groupIds) || '; add it to "groups" or remove this field'}` });
+  });
+
+  const parent = new Map();
+  (d.groups ?? []).forEach((g, i) => {
+    if (g.parent == null) return;
+    if (g.parent === g.id) errors.push({ path: `groups[${i}].parent`, code: "group-cycle", message: `group "${g.id}" can't be its own parent` });
+    else if (!groupIds.has(g.parent)) errors.push({ path: `groups[${i}].parent`, code: "unknown-group", message: `no group with id "${g.parent}"${suggest(g.parent, groupIds)}` });
+    else parent.set(g.id, g.parent);
+  });
+  // Loops in nesting: follow parents from each group.
+  const reported = new Set();
+  for (const start of parent.keys()) {
+    const chain = [start];
+    let p = parent.get(start);
+    while (p && !chain.includes(p)) { chain.push(p); p = parent.get(p); }
+    if (p && !reported.has(p)) {
+      const loop = chain.slice(chain.indexOf(p));
+      loop.forEach((g) => reported.add(g));
+      errors.push({ path: "groups", code: "group-cycle", message: `groups nest in a loop: ${[...loop, p].join(" → ")}; remove one "parent"` });
+    }
+  }
+
+  const edgeSeen = new Map();
+  (d.edges ?? []).forEach((e, i) => {
+    for (const end of ["from", "to"]) {
+      const id = e[end];
+      if (groupIds.has(id)) errors.push({ path: `edges[${i}].${end}`, code: "edge-to-group", message: `"${id}" is a group; arrows connect nodes, so point it at a node inside the group` });
+      else if (!nodeIds.has(id)) errors.push({ path: `edges[${i}].${end}`, code: "unknown-node", message: `no node with id "${id}"${suggest(id, nodeIds)}` });
+    }
+    if (e.from === e.to) warnings.push({ path: `edges[${i}]`, code: "self-loop", message: `arrow from "${e.from}" to itself is not drawn; remove it or describe the loop in a label` });
+    const key = `${e.from}→${e.to}`;
+    if (edgeSeen.has(key)) warnings.push({ path: `edges[${i}]`, code: "duplicate-edge", message: `same arrow as ${edgeSeen.get(key)} (${e.from} → ${e.to}); merge them or give each a different label` });
+    else edgeSeen.set(key, `edges[${i}]`);
+  });
+
+  const withPos = d.nodes.filter((n) => n.position).length;
+  if (withPos && withPos < d.nodes.length) {
+    const missing = d.nodes.filter((n) => !n.position).map((n) => n.id);
+    errors.push({ path: "nodes", code: "partial-positions", message: `${withPos} of ${d.nodes.length} nodes have a position; give every node a position or none. Missing: ${missing.slice(0, 5).join(", ")}${missing.length > 5 ? ", …" : ""}` });
+  }
+
+  // Empty groups and loose nodes: legal, but rarely intended.
+  for (const [i, g] of (d.groups ?? []).entries()) {
+    const used = d.nodes.some((n) => n.group === g.id) || (d.groups ?? []).some((h) => h.parent === g.id);
+    if (!used) warnings.push({ path: `groups[${i}]`, code: "empty-group", message: `group "${g.id}" has no nodes, so it won't be drawn; set "group": "${g.id}" on its nodes or remove it` });
+  }
+  if ((d.edges ?? []).length) {
+    const linked = new Set((d.edges ?? []).flatMap((e) => [e.from, e.to]));
+    d.nodes.forEach((n, i) => {
+      if (!linked.has(n.id)) warnings.push({ path: `nodes[${i}]`, code: "isolated-node", message: `node "${n.id}" has no arrows${d.nodes.every((m) => m.position) ? "; check it isn't missing a connection" : "; it will be placed at the start of the flow"}` });
+    });
+  }
+}
+
+// ----------------------------------------------------------------- 3. layout
+
+function curvePoints(path, n = 24) {
+  const pts = [];
+  for (let i = 0; i <= n; i++) pts.push(quadPoint(path.from, path.ctrl, path.to, i / n));
+  return pts;
+}
+
+function segmentsCross(p1, p2, p3, p4) {
+  const d = (a, b, c) => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+  const d1 = d(p3, p4, p1), d2 = d(p3, p4, p2), d3 = d(p1, p2, p3), d4 = d(p1, p2, p4);
+  return d1 * d2 < 0 && d3 * d4 < 0;
+}
+
+function curvesCross(a, b) {
+  for (let i = 1; i < a.length; i++)
+    for (let j = 1; j < b.length; j++)
+      if (segmentsCross(a[i - 1], a[i], b[j - 1], b[j])) return true;
+  return false;
+}
+
+const inside = (p, r) => p.x > r.x && p.x < r.x + r.width && p.y > r.y && p.y < r.y + r.height;
+
+function checkLayout(d, warnings, options) {
+  const p = plan(d, options);
+  const auto = !d.nodes.every((n) => n.position);
+  const idx = new Map(d.nodes.map((n, i) => [n.id, i]));
+  const shrink = (r, by) => ({ x: r.x + by, y: r.y + by, width: r.width - 2 * by, height: r.height - 2 * by });
+
+  // Nodes on top of each other (usually manual positions).
+  const ids = d.nodes.map((n) => n.id);
+  for (let i = 0; i < ids.length; i++)
+    for (let j = i + 1; j < ids.length; j++)
+      if (overlaps(shrink(p.rects.get(ids[i]), 2), shrink(p.rects.get(ids[j]), 2)))
+        warnings.push({ path: `nodes[${i}]`, code: "node-overlap", message: `node "${ids[i]}" overlaps "${ids[j]}"; move their positions further apart` });
+
+  // Nodes inside groups they don't belong to, and sibling groups overlapping.
+  const groups = d.groups ?? [];
+  const parent = new Map(groups.map((g) => [g.id, g.parent]));
+  const ancestors = (gid) => {
+    const out = [];
+    for (let g = gid; g && !out.includes(g); g = parent.get(g)) out.push(g);
+    return out;
+  };
+  for (const n of d.nodes) {
+    const mine = ancestors(n.group);
+    for (const [gid, gr] of p.groups) {
+      if (mine.includes(gid)) continue;
+      if (overlaps(shrink(p.rects.get(n.id), 2), gr))
+        warnings.push({ path: `nodes[${idx.get(n.id)}]`, code: "node-in-other-group", message: `node "${n.id}" is drawn inside group "${gid}" but isn't a member; ${auto ? `add "group": "${gid}" if it belongs there` : "move it outside the group's members"}` });
+    }
+  }
+  const gids = [...p.groups.keys()];
+  for (let i = 0; i < gids.length; i++)
+    for (let j = i + 1; j < gids.length; j++) {
+      const a = gids[i], b = gids[j];
+      if (ancestors(a).includes(b) || ancestors(b).includes(a)) continue;
+      if (overlaps(p.groups.get(a), p.groups.get(b)))
+        warnings.push({ path: "groups", code: "group-overlap", message: `groups "${a}" and "${b}" overlap; ${auto ? "a node in one is probably linked to nodes deep in the other; try switching direction or nesting one group in the other" : "move their members apart"}` });
+    }
+
+  // Arrows through nodes, and arrows crossing each other.
+  const curves = p.arrows.map((a) => curvePoints(a.path));
+  p.arrows.forEach((a, k) => {
+    const ei = (d.edges ?? []).indexOf(a.edge);
+    const through = d.nodes.filter((n) => n.id !== a.edge.from && n.id !== a.edge.to && curves[k].slice(1, -1).some((pt) => inside(pt, shrink(p.rects.get(n.id), 4)))).map((n) => n.id);
+    if (through.length)
+      warnings.push({ path: `edges[${ei}]`, code: "arrow-through-node", message: `arrow ${a.edge.from} → ${a.edge.to} passes through ${through.map((t) => `"${t}"`).join(", ")}; ${auto ? "try the other direction (LR/TB), or reorder nodes so linked ones sit closer" : "move the nodes so the path is clear"}` });
+  });
+  const crossings = [];
+  for (let i = 0; i < p.arrows.length; i++)
+    for (let j = i + 1; j < p.arrows.length; j++) {
+      const a = p.arrows[i].edge, b = p.arrows[j].edge;
+      if (a.from === b.from || a.from === b.to || a.to === b.from || a.to === b.to) continue;
+      if (curvesCross(curves[i], curves[j])) crossings.push(`${a.from} → ${a.to} × ${b.from} → ${b.to}`);
+    }
+  if (crossings.length)
+    warnings.push({ path: "edges", code: "arrow-crossings", message: `${crossings.length} arrow crossing${crossings.length > 1 ? "s" : ""}: ${crossings.slice(0, 4).join("; ")}${crossings.length > 4 ? "; …" : ""}. ${auto ? "Try the other direction, or move one end into the same group as the other" : "Rearrange positions to untangle them"}` });
+
+  // Arrow labels with nowhere clear to go.
+  for (const a of p.arrows) {
+    if (a.label && !a.label.clear) {
+      const ei = (d.edges ?? []).indexOf(a.edge);
+      warnings.push({ path: `edges[${ei}].label`, code: "label-crowded", message: `label "${a.edge.label}" has no clear space and may overlap other text; shorten it or space the nodes out` });
+    }
+  }
+
+  // Labels that don't fit a manually sized node.
+  d.nodes.forEach((n, i) => {
+    if (!n.size) return;
+    const w = measureLines(n.label.split("\n"), LABEL_SIZE);
+    if (w + 16 > n.size.width) warnings.push({ path: `nodes[${i}].size`, code: "label-overflow", message: `label "${n.label.replace(/\n/g, " ")}" needs about ${Math.ceil(w + 16)}px but the node is ${n.size.width}px wide; widen it, add a line break, or drop "size"` });
+  });
+
+  // Very long, thin drawings are hard to read.
+  const ratio = p.page.width / p.page.height;
+  if (auto && (ratio > 3 || ratio < 1 / 3)) {
+    const flip = (d.direction ?? "LR") === "LR" ? "TB" : "LR";
+    warnings.push({ path: "direction", code: "aspect", message: `the drawing is ${ratio > 1 ? "very wide" : "very tall"} (${p.page.width}×${p.page.height}); try "direction": "${flip}"` });
+  }
+}
+
+/**
+ * Check a diagram. Returns { valid, errors, warnings }; each problem is
+ * { path, code, message }. `valid` is false only when there are errors.
+ */
+function validate(diagram, options = {}) {
+  const errors = [], warnings = [];
+  checkSchema(diagram, SCHEMA, "", errors);
+  if (!errors.length) checkReferences(diagram, errors, warnings);
+  if (!errors.length && options.layout !== false) checkLayout(diagram, warnings, options);
+  return { valid: errors.length === 0, errors, warnings };
+}
+
+function formatReport({ errors, warnings }, name = "diagram") {
+  const lines = [];
+  for (const e of errors) lines.push(`error   ${e.path}: ${e.message}`);
+  for (const w of warnings) lines.push(`warning ${w.path}: ${w.message}`);
+  if (!errors.length && !warnings.length) lines.push(`${name}: ok`);
+  else lines.push(`${name}: ${errors.length} error${errors.length === 1 ? "" : "s"}, ${warnings.length} warning${warnings.length === 1 ? "" : "s"}`);
+  return lines.join("\n");
+}
+
+return { validate, formatReport };
+}
+};
+const done = {};
+const load = (name) => done[name] ??= defs[name](load);
+const { render, plan } = load("render");
+const { validate, formatReport } = load("validate");
+const { PAPER_STYLES } = load("paper");
+globalThis.penciled = { render, plan, validate, formatReport, PAPER_STYLES };
+})();</script>
+<script>
+const DATA = {"diagram":{"$schema":"../schema/architecture.schema.json","version":"0.1","type":"architecture","title":"Photo sharing app","direction":"TB","nodes":[{"id":"user","label":"User","shape":"person"},{"id":"cdn","label":"CDN","shape":"cloud"},{"id":"api","label":"API server","sublabel":"Node.js","shape":"rounded","group":"backend"},{"id":"worker","label":"Thumbnail\nworker","shape":"rounded","group":"backend"},{"id":"jobs","label":"Job queue","sublabel":"Redis","shape":"queue","group":"backend"},{"id":"db","label":"Database","sublabel":"Postgres","shape":"database","shade":"light","group":"data"},{"id":"store","label":"Object storage","sublabel":"S3","shape":"box","shade":"light","group":"data"}],"groups":[{"id":"cloud","label":"AWS"},{"id":"backend","label":"Backend","parent":"cloud"},{"id":"data","label":"Data","parent":"cloud","shade":"light"}],"edges":[{"from":"user","to":"cdn","label":"views photos"},{"from":"user","to":"api","label":"HTTPS"},{"from":"cdn","to":"store","label":"fetches"},{"from":"api","to":"db","label":"reads/writes","arrow":"both"},{"from":"api","to":"store","label":"uploads"},{"from":"api","to":"jobs","label":"enqueue","style":"dashed"},{"from":"jobs","to":"worker","style":"dashed"},{"from":"worker","to":"store","label":"thumbnails"}],"paper":{"texture":"plain","pencil":"2B","eraserMarks":true,"seed":42}},"seed":42};
+(() => {
+  const d0 = DATA.diagram;
+  const manual = d0.nodes.every((n) => n.position);
+  const state = {
+    style: d0.paper?.style ?? "clean", texture: d0.paper?.texture ?? "plain", pencil: d0.paper?.pencil ?? "2B",
+    direction: d0.direction ?? "LR", eraserMarks: d0.paper?.eraserMarks ?? true, seed: DATA.seed >>> 0,
+  };
+  const $ = (id) => document.getElementById(id);
+  const stage = $("stage"), sheet = $("sheet"), panel = $("panel");
+  let svgText = "", size = { w: 1, h: 1 }, view = { x: 0, y: 0, s: 1 };
+
+  const current = () => {
+    const d = structuredClone(d0);
+    d.paper = { ...d.paper, style: state.style, texture: state.texture, pencil: state.pencil, eraserMarks: state.eraserMarks, seed: state.seed };
+    if (!manual) d.direction = state.direction;
+    return d;
+  };
+
+  function draw(refit) {
+    const d = current();
+    svgText = penciled.render(d, { seed: state.seed });
+    sheet.innerHTML = svgText;
+    const svg = sheet.firstElementChild;
+    size = { w: +svg.getAttribute("width"), h: +svg.getAttribute("height") };
+    $("redraw").title = "Draw it again with a new seed (R). Current seed: " + state.seed;
+    for (const seg of document.querySelectorAll(".seg")) {
+      for (const b of seg.children) b.setAttribute("aria-pressed", String(state[seg.dataset.opt] === b.dataset.v));
+    }
+    for (const b of document.querySelectorAll('[data-opt="direction"] button')) {
+      b.disabled = manual;
+      if (manual) b.title = "Nodes have manual positions";
+    }
+    $("eraser").checked = state.eraserMarks;
+    report(penciled.validate(d, { seed: state.seed }));
+    refit ? fit() : apply();
+  }
+
+  function report({ errors, warnings }) {
+    const items = [...errors.map((e) => ["error", e]), ...warnings.map((w) => ["warning", w])];
+    const w = $("warn");
+    w.hidden = !items.length;
+    w.textContent = "⚠ " + items.length + (items.length === 1 ? " warning" : " warnings");
+    const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+    panel.innerHTML = "<h2>What may not draw well</h2><ul>" +
+      items.map(([k, p]) => "<li><code>" + esc(p.path) + "</code> " + esc(p.message) + "</li>").join("") + "</ul>";
+    if (!items.length) { panel.hidden = true; w.setAttribute("aria-expanded", "false"); }
+  }
+
+  function apply() {
+    const svg = sheet.firstElementChild;
+    // Resize the SVG itself rather than scaling a picture of it, so pencil
+    // grain stays sharp at any zoom.
+    svg.setAttribute("width", Math.round(size.w * view.s));
+    svg.setAttribute("height", Math.round(size.h * view.s));
+    sheet.style.transform = "translate(" + Math.round(view.x) + "px," + Math.round(view.y) + "px)";
+    $("zoom").textContent = Math.round(view.s * 100) + "%";
+  }
+
+  function fit() {
+    const r = stage.getBoundingClientRect(), pad = 32;
+    view.s = Math.min((r.width - 2 * pad) / size.w, (r.height - 2 * pad) / size.h, 1.5);
+    view.x = (r.width - size.w * view.s) / 2;
+    view.y = (r.height - size.h * view.s) / 2;
+    apply();
+  }
+
+  function zoomAt(factor, cx, cy) {
+    const s = Math.min(8, Math.max(0.1, view.s * factor));
+    view.x = cx - (cx - view.x) * (s / view.s);
+    view.y = cy - (cy - view.y) * (s / view.s);
+    view.s = s;
+    apply();
+  }
+  const zoomCenter = (f) => { const r = stage.getBoundingClientRect(); zoomAt(f, r.width / 2, r.height / 2); };
+
+  let pending = null;
+  stage.addEventListener("wheel", (e) => {
+    if (e.target.closest("#panel")) return;
+    e.preventDefault();
+    const r = stage.getBoundingClientRect();
+    const f = Math.exp(-e.deltaY * (e.deltaMode ? 0.05 : 0.0015));
+    const x = e.clientX - r.left, y = e.clientY - r.top;
+    if (pending) { pending.f *= f; return; }
+    pending = { f, x, y };
+    requestAnimationFrame(() => { zoomAt(pending.f, pending.x, pending.y); pending = null; });
+  }, { passive: false });
+
+  let drag = null;
+  stage.addEventListener("pointerdown", (e) => {
+    if (e.target.closest("#panel, .zoombar") || e.button !== 0) return;
+    drag = { x: e.clientX - view.x, y: e.clientY - view.y };
+    stage.setPointerCapture(e.pointerId);
+    stage.classList.add("dragging");
+  });
+  stage.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    view.x = e.clientX - drag.x; view.y = e.clientY - drag.y;
+    apply();
+  });
+  const endDrag = () => { drag = null; stage.classList.remove("dragging"); };
+  stage.addEventListener("pointerup", endDrag);
+  stage.addEventListener("pointercancel", endDrag);
+
+  for (const seg of document.querySelectorAll(".seg")) {
+    seg.addEventListener("click", (e) => {
+      const b = e.target.closest("button");
+      if (!b || b.disabled) return;
+      state[seg.dataset.opt] = b.dataset.v;
+      draw(seg.dataset.opt === "direction");
+    });
+  }
+  $("eraser").addEventListener("change", (e) => { state.eraserMarks = e.target.checked; draw(false); });
+  const redraw = () => { state.seed = (Math.random() * 2 ** 32) >>> 0; draw(false); };
+  $("redraw").addEventListener("click", redraw);
+  $("in").addEventListener("click", () => zoomCenter(1.25));
+  $("out").addEventListener("click", () => zoomCenter(0.8));
+  $("fit").addEventListener("click", fit);
+  $("warn").addEventListener("click", () => {
+    panel.hidden = !panel.hidden;
+    $("warn").setAttribute("aria-expanded", String(!panel.hidden));
+  });
+
+  const slug = (d0.title || "diagram").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "diagram";
+  function save(blob, ext) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = slug + "." + ext;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  $("svg").addEventListener("click", () => save(new Blob([svgText], { type: "image/svg+xml" }), "svg"));
+  $("json").addEventListener("click", () => save(new Blob([JSON.stringify(current(), null, 2) + "\n"], { type: "application/json" }), "json"));
+  // Raster copies at twice the drawing's size, sharp enough for slides.
+  function raster(type, ext, quality) {
+    const img = new Image();
+    const url = URL.createObjectURL(new Blob([svgText], { type: "image/svg+xml" }));
+    img.onload = () => {
+      const scale = 2, c = document.createElement("canvas");
+      c.width = size.w * scale; c.height = size.h * scale;
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob((b) => save(b, ext), type, quality);
+    };
+    img.src = url;
+  }
+  $("png").addEventListener("click", () => raster("image/png", "png"));
+  $("jpg").addEventListener("click", () => raster("image/jpeg", "jpg", 0.9));
+
+  addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || e.target.matches("input, textarea")) return;
+    const k = e.key.toLowerCase();
+    if (k === "r") redraw();
+    else if (k === "f") fit();
+    else if (k === "0") zoomCenter(1 / view.s);
+    else if (k === "+" || k === "=") zoomCenter(1.25);
+    else if (k === "-" || k === "_") zoomCenter(0.8);
+    else if (k === "escape") { panel.hidden = true; $("warn").setAttribute("aria-expanded", "false"); }
+  });
+  let resizeTimer;
+  addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(fit, 120); });
+
+  // Fonts inside the SVG load asynchronously; fit once they are ready.
+  draw(true);
+  document.fonts?.ready.then(() => fit());
+})();
+</script>
+</body>
+</html>

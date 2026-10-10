@@ -127,28 +127,26 @@ function autoPlace(diagram, ids, edges, chains, sizes, vertical, rects) {
     neighbours.get(e.to).push(e.from);
   }
 
-  // 2. Order within ranks.
+  // 2. Order within ranks. Sweep down then up, one rank at a time, sorting
+  // each rank by where its neighbours in the rank just visited sit. Keep the
+  // ordering with the fewest crossings seen.
   const ranks = Array.from({ length: nRanks }, () => []);
   for (const id of ids) ranks[rank.get(id)].push(id);
   const pos = new Map();
-  const index = () => ranks.forEach((r) => r.forEach((id, i) => pos.set(id, i - (r.length - 1) / 2)));
-  index();
-  for (let sweep = 0; sweep < 8; sweep++) {
-    const key = new Map();
-    for (const id of ids) {
-      const nb = neighbours.get(id);
-      key.set(id, nb.length ? nb.reduce((s, w) => s + pos.get(w), 0) / nb.length : pos.get(id));
-    }
+  const index = (r) => r.forEach((id, i) => pos.set(id, i - (r.length - 1) / 2));
+  ranks.forEach(index);
+
+  const cmpFor = (key) => {
     // A group's key is the average of its members', so whole groups keep the
     // same order in every rank.
     const gsum = new Map();
     for (const id of ids) for (const g of chains.get(id)) {
       const t = gsum.get(g) ?? { s: 0, n: 0 };
-      t.s += key.get(id); t.n++;
+      t.s += key.get(id) ?? pos.get(id); t.n++;
       gsum.set(g, t);
     }
     const gkey = (g) => gsum.get(g).s / gsum.get(g).n;
-    const cmp = (a, b) => {
+    return (a, b) => {
       const ca = chains.get(a), cb = chains.get(b);
       for (let d = 0; ; d++) {
         const ea = ca[d], eb = cb[d];
@@ -158,9 +156,46 @@ function autoPlace(diagram, ids, edges, chains, sizes, vertical, rects) {
         return (ea ?? a) < (eb ?? b) ? -1 : 1;
       }
     };
-    for (const r of ranks) r.sort(cmp);
-    index();
+  };
+
+  // Crossings between arrows whose rank spans overlap, judged by which side
+  // of each other they are on at both ends of the overlap.
+  const spans = edges.map((e) => {
+    const [a, b] = rank.get(e.from) <= rank.get(e.to) ? [e.from, e.to] : [e.to, e.from];
+    return { a, b, ra: rank.get(a), rb: rank.get(b) };
+  }).filter((e) => e.ra < e.rb);
+  const at = (e, r) => pos.get(e.a) + ((pos.get(e.b) - pos.get(e.a)) * (r - e.ra)) / (e.rb - e.ra);
+  const crossings = () => {
+    let n = 0;
+    for (let i = 0; i < spans.length; i++)
+      for (let j = i + 1; j < spans.length; j++) {
+        const e = spans[i], f = spans[j];
+        if (e.a === f.a || e.b === f.b || e.a === f.b || e.b === f.a) continue;
+        const lo = Math.max(e.ra, f.ra), hi = Math.min(e.rb, f.rb);
+        if (lo >= hi) continue;
+        if ((at(e, lo) - at(f, lo)) * (at(e, hi) - at(f, hi)) < 0) n++;
+      }
+    return n;
+  };
+
+  let best = { n: crossings(), order: ranks.map((r) => [...r]) };
+  for (let sweep = 0; sweep < 12 && best.n > 0; sweep++) {
+    const down = sweep % 2 === 0;
+    const order = down ? [...ranks.keys()].slice(1) : [...ranks.keys()].reverse().slice(1);
+    for (const r of order) {
+      const key = new Map();
+      for (const id of ranks[r]) {
+        const nb = neighbours.get(id).filter((w) => (down ? rank.get(w) < r : rank.get(w) > r));
+        if (nb.length) key.set(id, nb.reduce((sum, w) => sum + pos.get(w), 0) / nb.length);
+        else key.set(id, pos.get(id));
+      }
+      ranks[r].sort(cmpFor(key));
+      index(ranks[r]);
+    }
+    const n = crossings();
+    if (n < best.n) best = { n, order: ranks.map((r) => [...r]) };
   }
+  best.order.forEach((r, i) => { ranks[i] = r; index(r); });
 
   // 3a. Space the ranks: wide enough for the longest arrow label crossing the gap.
   const gapAfter = new Array(nRanks).fill(vertical ? 90 : 110);

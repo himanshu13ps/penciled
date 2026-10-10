@@ -1,15 +1,12 @@
 // Handwriting font: embedding and text measurement without a browser.
 
-import { readFileSync } from "node:fs";
-
-const FONT_URL = new URL("../fonts/caveat.woff2", import.meta.url);
-const METRICS = JSON.parse(readFileSync(new URL("../fonts/caveat-metrics.json", import.meta.url), "utf8"));
+import { METRICS, fontBase64 } from "./assets.js";
 
 export const FONT_FAMILY = "penciled-hand";
 
 let fontFace;
 export function fontFaceCss() {
-  fontFace ??= `@font-face{font-family:${FONT_FAMILY};src:url(data:font/woff2;base64,${readFileSync(FONT_URL).toString("base64")}) format("woff2");}`;
+  fontFace ??= `@font-face{font-family:${FONT_FAMILY};src:url(data:font/woff2;base64,${fontBase64()}) format("woff2");}`;
   return fontFace;
 }
 

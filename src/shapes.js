@@ -164,7 +164,9 @@ export const SHAPES = {
       const fig = { x: cx - PERSON_FIGURE.width / 2, y: top, width: PERSON_FIGURE.width, height: PERSON_FIGURE.height };
       const headR = 9.5, neck = top + 2 * headR + 1, hip = top + 42, foot = top + PERSON_FIGURE.height;
       return {
-        outline: rectPolygon(fig),
+        // Arrows stop at the figure and its name together, so none run
+        // through the label underneath.
+        outline: rectPolygon({ x: Math.min(fig.x, rect.x), y: rect.y, width: Math.max(fig.width, rect.width), height: rect.height }),
         shadeArea: null,
         label: { x: cx, y: (foot + 10 + rect.y + rect.height) / 2 },
         draw: (rng, pencil) => {

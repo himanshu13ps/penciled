@@ -1,0 +1,30 @@
+{
+  "$schema": "../schema/architecture.schema.json",
+  "version": "0.1",
+  "type": "architecture",
+  "title": "Analytics platform",
+  "direction": "TB",
+  "nodes": [
+    {"id": "apps", "label": "App events", "shape": "cloud"},
+    {"id": "stream", "label": "Event stream", "shape": "queue", "group": "ingest"},
+    {"id": "etl", "label": "ETL jobs", "sublabel": "Spark", "shape": "rounded", "group": "ingest"},
+    {"id": "lake", "label": "Data lake", "sublabel": "Parquet", "shape": "database", "shade": "medium"},
+    {"id": "warehouse", "label": "Warehouse", "shape": "database", "shade": "light"},
+    {"id": "ml", "label": "Model training", "shape": "rounded"},
+    {"id": "bi", "label": "Dashboards", "shape": "document"},
+    {"id": "analyst", "label": "Analyst", "shape": "person"}
+  ],
+  "groups": [
+    {"id": "ingest", "label": "Ingestion"}
+  ],
+  "edges": [
+    {"from": "apps", "to": "stream"},
+    {"from": "stream", "to": "etl"},
+    {"from": "etl", "to": "lake", "label": "raw"},
+    {"from": "lake", "to": "warehouse", "label": "modelled"},
+    {"from": "lake", "to": "ml", "label": "features"},
+    {"from": "warehouse", "to": "bi"},
+    {"from": "analyst", "to": "bi", "label": "reads", "arrow": "end"}
+  ],
+  "paper": {"style": "aged", "texture": "grid", "pencil": "4B", "seed": 5}
+}

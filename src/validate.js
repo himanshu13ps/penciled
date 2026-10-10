@@ -14,12 +14,10 @@
 // probably won't look the way the author wants. Every message says what to
 // change, because the reader is often an agent fixing its own output.
 
-import { readFileSync } from "node:fs";
+import { SCHEMA } from "./assets.js";
 import { plan } from "./render.js";
 import { overlaps, quadPoint } from "./geometry.js";
 import { measureLines } from "./text.js";
-
-const SCHEMA = JSON.parse(readFileSync(new URL("../schema/architecture.schema.json", import.meta.url), "utf8"));
 
 const LABEL_SIZE = 24;
 

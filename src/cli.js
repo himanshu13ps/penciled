@@ -1,25 +1,28 @@
 #!/usr/bin/env node
-// penciled <diagram.json> [-o out.svg] [--seed N] [--strict]
+// penciled <diagram.json> [-o out.svg|out.html] [--html] [--seed N] [--strict]
 // penciled validate <diagram.json> [--json] [--strict]
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { render } from "./render.js";
 import { formatReport, validate } from "./validate.js";
+import { viewerHtml } from "./viewer.js";
 
 const USAGE = `usage:
-  penciled <diagram.json> [-o out.svg] [--seed N] [--strict]
+  penciled <diagram.json> [-o out.svg | -o out.html] [--html] [--seed N] [--strict]
   penciled validate <diagram.json> [--json] [--strict]
 
---strict  treat warnings as failures (exit code 1)`;
+-o out.html, --html  write the interactive HTML viewer instead of a bare SVG
+--strict             treat warnings as failures (exit code 1)`;
 
 const args = process.argv.slice(2);
 const command = args[0] === "validate" ? args.shift() : "render";
-let input, output, seed, json = false, strict = false;
+let input, output, seed, json = false, strict = false, html = false;
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "-o" || args[i] === "--out") output = args[++i];
   else if (args[i] === "--seed") seed = Number(args[++i]);
   else if (args[i] === "--json") json = true;
   else if (args[i] === "--strict") strict = true;
+  else if (args[i] === "--html") html = true;
   else if (args[i] === "-h" || args[i] === "--help") { console.log(USAGE); process.exit(0); }
   else input = args[i];
 }
@@ -50,6 +53,6 @@ if (command === "validate") {
 // Rendering: errors stop it, warnings are reported on stderr.
 if (report.errors.length || report.warnings.length) console.error(formatReport(report, input));
 if (failed) process.exit(1);
-const svg = render(diagram, { seed });
-if (output) writeFileSync(output, svg);
-else process.stdout.write(svg);
+const result = html || output?.endsWith(".html") ? viewerHtml(diagram, { seed }) : render(diagram, { seed });
+if (output) writeFileSync(output, result);
+else process.stdout.write(result);

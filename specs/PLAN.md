@@ -43,4 +43,5 @@ grain and the odd eraser mark.
 - M2: done
 - M3: done (all shapes, groups, layered layout, arrow routing, lined/grid paper)
 - M4: done (src/validate.js: schema, reference and layout checks; `validate` CLI command)
-- M5: next
+- M5: done (self-contained HTML viewer with live redraw; 8 examples)
+- M6: next

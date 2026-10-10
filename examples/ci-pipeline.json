@@ -1,0 +1,27 @@
+{
+  "$schema": "../schema/architecture.schema.json",
+  "version": "0.1",
+  "type": "architecture",
+  "title": "CI/CD pipeline",
+  "direction": "LR",
+  "nodes": [
+    {"id": "dev", "label": "Developer", "shape": "person"},
+    {"id": "ci", "label": "CI runner", "sublabel": "build + test", "shape": "rounded", "group": "pipeline"},
+    {"id": "registry", "label": "Image registry", "shape": "database", "group": "pipeline"},
+    {"id": "staging", "label": "Staging", "shape": "box", "group": "envs"},
+    {"id": "prod", "label": "Production", "shape": "box", "shade": "light", "group": "envs"},
+    {"id": "report", "label": "Test report", "shape": "document"}
+  ],
+  "groups": [
+    {"id": "pipeline", "label": "Pipeline"},
+    {"id": "envs", "label": "Environments"}
+  ],
+  "edges": [
+    {"from": "dev", "to": "ci", "label": "git push"},
+    {"from": "ci", "to": "report", "style": "dashed"},
+    {"from": "ci", "to": "registry", "label": "image"},
+    {"from": "registry", "to": "staging", "label": "deploy"},
+    {"from": "staging", "to": "prod", "label": "promote"}
+  ],
+  "paper": {"seed": 21}
+}
