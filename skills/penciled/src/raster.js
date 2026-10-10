@@ -96,7 +96,7 @@ export function cropPngHeight(png, height) {
 }
 
 export const NO_BROWSER = "PNG output needs Chrome, Edge, Chromium or Brave installed (or PENCILED_BROWSER set to one). " +
-  "Without one, write an SVG (-o out.svg), or the viewer (-o out.html) and use its Save PNG button.";
+  "Without one, write an SVG (-o out.svg), or the viewer (-o out.html) and use its PNG button.";
 
 /**
  * Write `svg` as a PNG at `scale` times its size. Throws with a readable
