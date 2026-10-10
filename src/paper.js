@@ -1,12 +1,20 @@
 // Paper and graphite: SVG filters and the page background.
 
 export const GRAPHITE = "#34343a";
-const PAPER = "#f7f4ec";
+// Paper styles. "aged" is warm cream with blotches and darker edges; "clean"
+// is near-white sketchbook paper with only a fine tooth; "bright" is crisp
+// printer paper.
+export const PAPER_STYLES = {
+  aged: { color: "#f7f4ec", tooth: [0.45, -0.17], toothTint: [0.4, 0.38, 0.33], blotch: [0.3, -0.1], vignette: 0.14 },
+  clean: { color: "#fbfaf7", tooth: [0.32, -0.13], toothTint: [0.42, 0.42, 0.42], blotch: null, vignette: 0.04 },
+  bright: { color: "#fefefe", tooth: [0.22, -0.09], toothTint: [0.45, 0.45, 0.47], blotch: null, vignette: 0 },
+};
 
 // Filters are defined once per drawing. Turbulence seeds come from the
 // drawing seed so grain is reproducible too.
-export function defs(seed) {
+export function defs(seed, style = PAPER_STYLES.aged) {
   const s = seed % 1000;
+  const [tr, tg, tb] = style.toothTint;
   return `
 <filter id="pc-graphite" x="-2%" y="-2%" width="104%" height="104%" color-interpolation-filters="sRGB">
   <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="${s}" result="tooth"/>
@@ -29,10 +37,10 @@ export function defs(seed) {
 </filter>
 <filter id="pc-paper" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
   <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="${s + 3}" result="fine"/>
-  <feColorMatrix in="fine" type="matrix" values="0 0 0 0 0.4 0 0 0 0 0.38 0 0 0 0 0.33 0.45 0 0 0 -0.17" result="tooth"/>
+  <feColorMatrix in="fine" type="matrix" values="0 0 0 0 ${tr} 0 0 0 0 ${tg} 0 0 0 0 ${tb} ${style.tooth[0]} 0 0 0 ${style.tooth[1]}" result="tooth"/>${style.blotch ? `
   <feTurbulence type="fractalNoise" baseFrequency="0.006" numOctaves="3" seed="${s + 4}" result="coarse"/>
-  <feColorMatrix in="coarse" type="matrix" values="0 0 0 0 0.5 0 0 0 0 0.45 0 0 0 0 0.35 0.3 0 0 0 -0.1" result="blotch"/>
-  <feMerge><feMergeNode in="blotch"/><feMergeNode in="tooth"/></feMerge>
+  <feColorMatrix in="coarse" type="matrix" values="0 0 0 0 0.5 0 0 0 0 0.45 0 0 0 0 0.35 ${style.blotch[0]} 0 0 0 ${style.blotch[1]}" result="blotch"/>
+  <feMerge><feMergeNode in="blotch"/><feMergeNode in="tooth"/></feMerge>` : ""}
 </filter>
 <filter id="pc-print" color-interpolation-filters="sRGB">
   <feTurbulence type="fractalNoise" baseFrequency="0.02 0.6" numOctaves="2" seed="${s + 5}" result="n"/>
@@ -41,7 +49,7 @@ export function defs(seed) {
 </filter>
 <radialGradient id="pc-vignette" cx="50%" cy="45%" r="75%">
   <stop offset="60%" stop-color="#8a7f66" stop-opacity="0"/>
-  <stop offset="100%" stop-color="#8a7f66" stop-opacity="0.14"/>
+  <stop offset="100%" stop-color="#8a7f66" stop-opacity="${style.vignette}"/>
 </radialGradient>`;
 }
 
@@ -63,9 +71,9 @@ function ruling(width, height, texture) {
   return "";
 }
 
-export function background(width, height, texture = "plain") {
-  return `<rect width="${width}" height="${height}" fill="${PAPER}"/>
+export function background(width, height, texture = "plain", style = PAPER_STYLES.aged) {
+  return `<rect width="${width}" height="${height}" fill="${style.color}"/>
 ${ruling(width, height, texture)}
 <rect width="${width}" height="${height}" filter="url(#pc-paper)"/>
-<rect width="${width}" height="${height}" fill="url(#pc-vignette)"/>`;
+${style.vignette ? `<rect width="${width}" height="${height}" fill="url(#pc-vignette)"/>` : ""}`;
 }

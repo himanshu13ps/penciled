@@ -4,7 +4,11 @@
   "title": "penciled architecture diagram",
   "description": "Input for a hand-drawn pencil-style architecture diagram: nodes (boxes and other shapes), optional groups around them, and edges (arrows) between them.",
   "type": "object",
-  "required": ["version", "type", "nodes"],
+  "required": [
+    "version",
+    "type",
+    "nodes"
+  ],
   "additionalProperties": false,
   "properties": {
     "$schema": {
@@ -26,7 +30,10 @@
       "description": "Handwritten title shown at the top of the page."
     },
     "direction": {
-      "enum": ["LR", "TB"],
+      "enum": [
+        "LR",
+        "TB"
+      ],
       "default": "LR",
       "description": "Main flow for automatic layout: left to right or top to bottom. Ignored for nodes that have explicit positions."
     },
@@ -34,19 +41,27 @@
       "type": "array",
       "minItems": 1,
       "maxItems": 40,
-      "items": { "$ref": "#/$defs/node" }
+      "items": {
+        "$ref": "#/$defs/node"
+      }
     },
     "groups": {
       "type": "array",
       "maxItems": 12,
-      "items": { "$ref": "#/$defs/group" }
+      "items": {
+        "$ref": "#/$defs/group"
+      }
     },
     "edges": {
       "type": "array",
       "maxItems": 80,
-      "items": { "$ref": "#/$defs/edge" }
+      "items": {
+        "$ref": "#/$defs/edge"
+      }
     },
-    "paper": { "$ref": "#/$defs/paper" }
+    "paper": {
+      "$ref": "#/$defs/paper"
+    }
   },
   "$defs": {
     "id": {
@@ -61,16 +76,28 @@
       "description": "Handwritten text. Use '\\n' for a line break."
     },
     "shade": {
-      "enum": ["none", "light", "medium", "dark"],
+      "enum": [
+        "none",
+        "light",
+        "medium",
+        "dark"
+      ],
       "description": "How much graphite shading fills the shape."
     },
     "node": {
       "type": "object",
-      "required": ["id", "label"],
+      "required": [
+        "id",
+        "label"
+      ],
       "additionalProperties": false,
       "properties": {
-        "id": { "$ref": "#/$defs/id" },
-        "label": { "$ref": "#/$defs/label" },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "label": {
+          "$ref": "#/$defs/label"
+        },
         "sublabel": {
           "type": "string",
           "minLength": 1,
@@ -78,12 +105,24 @@
           "description": "Smaller second line under the label, e.g. a technology name."
         },
         "shape": {
-          "enum": ["box", "rounded", "database", "queue", "person", "cloud", "document"],
+          "enum": [
+            "box",
+            "rounded",
+            "database",
+            "queue",
+            "person",
+            "cloud",
+            "document"
+          ],
           "default": "box",
           "description": "Drawn shape. box: plain rectangle. rounded: service or process. database: cylinder. queue: horizontal cylinder. person: stick figure (user or actor). cloud: external system or internet. document: page with a folded corner (file, report, config)."
         },
         "shade": {
-          "allOf": [{ "$ref": "#/$defs/shade" }],
+          "allOf": [
+            {
+              "$ref": "#/$defs/shade"
+            }
+          ],
           "default": "none"
         },
         "group": {
@@ -93,51 +132,89 @@
         "position": {
           "type": "object",
           "description": "Manual placement of the node's centre, in page units (1 unit = 1 px at 100% zoom). Omit to let penciled place the node.",
-          "required": ["x", "y"],
+          "required": [
+            "x",
+            "y"
+          ],
           "additionalProperties": false,
           "properties": {
-            "x": { "type": "number", "minimum": 0 },
-            "y": { "type": "number", "minimum": 0 }
+            "x": {
+              "type": "number",
+              "minimum": 0
+            },
+            "y": {
+              "type": "number",
+              "minimum": 0
+            }
           }
         },
         "size": {
           "type": "object",
           "description": "Manual size in page units. Omit to size the node to fit its label.",
-          "required": ["width", "height"],
+          "required": [
+            "width",
+            "height"
+          ],
           "additionalProperties": false,
           "properties": {
-            "width": { "type": "number", "minimum": 40, "maximum": 600 },
-            "height": { "type": "number", "minimum": 30, "maximum": 400 }
+            "width": {
+              "type": "number",
+              "minimum": 40,
+              "maximum": 600
+            },
+            "height": {
+              "type": "number",
+              "minimum": 30,
+              "maximum": 400
+            }
           }
         }
       }
     },
     "group": {
       "type": "object",
-      "required": ["id", "label"],
+      "required": [
+        "id",
+        "label"
+      ],
       "additionalProperties": false,
       "description": "A dashed outline drawn around its member nodes, e.g. a VPC, a cluster or a team boundary.",
       "properties": {
-        "id": { "$ref": "#/$defs/id" },
-        "label": { "$ref": "#/$defs/label" },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "label": {
+          "$ref": "#/$defs/label"
+        },
         "parent": {
           "$ref": "#/$defs/id",
           "description": "Id of an enclosing group, for nesting."
         },
         "shade": {
-          "allOf": [{ "$ref": "#/$defs/shade" }],
+          "allOf": [
+            {
+              "$ref": "#/$defs/shade"
+            }
+          ],
           "default": "none"
         }
       }
     },
     "edge": {
       "type": "object",
-      "required": ["from", "to"],
+      "required": [
+        "from",
+        "to"
+      ],
       "additionalProperties": false,
       "description": "An arrow between two nodes.",
       "properties": {
-        "from": { "$ref": "#/$defs/id" },
-        "to": { "$ref": "#/$defs/id" },
+        "from": {
+          "$ref": "#/$defs/id"
+        },
+        "to": {
+          "$ref": "#/$defs/id"
+        },
         "label": {
           "type": "string",
           "minLength": 1,
@@ -145,12 +222,20 @@
           "description": "Short handwritten text next to the arrow, e.g. 'HTTPS' or 'writes'."
         },
         "style": {
-          "enum": ["solid", "dashed"],
+          "enum": [
+            "solid",
+            "dashed"
+          ],
           "default": "solid",
           "description": "dashed usually means async or optional."
         },
         "arrow": {
-          "enum": ["end", "start", "both", "none"],
+          "enum": [
+            "end",
+            "start",
+            "both",
+            "none"
+          ],
           "default": "end",
           "description": "Which ends get an arrowhead."
         }
@@ -162,12 +247,29 @@
       "description": "The look of the paper and pencil.",
       "properties": {
         "texture": {
-          "enum": ["plain", "lined", "grid"],
+          "enum": [
+            "plain",
+            "lined",
+            "grid"
+          ],
           "default": "plain",
           "description": "Paper ruling under the drawing."
         },
+        "style": {
+          "enum": [
+            "aged",
+            "clean",
+            "bright"
+          ],
+          "default": "aged",
+          "description": "Paper colour and grain: aged is warm cream with soft blotches, clean is near-white sketchbook paper, bright is crisp white printer paper."
+        },
         "pencil": {
-          "enum": ["HB", "2B", "4B"],
+          "enum": [
+            "HB",
+            "2B",
+            "4B"
+          ],
           "default": "2B",
           "description": "Pencil hardness: HB is light and crisp, 4B is dark and soft."
         },

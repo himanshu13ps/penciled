@@ -47,6 +47,7 @@ its own.
 | Field | Default | Meaning |
 |-------|---------|---------|
 | `texture` | `plain` | `plain`, `lined` or `grid` |
+| `style` | `aged` | `aged` warm cream, `clean` near-white, `bright` white |
 | `pencil` | `2B` | `HB` light and crisp, `2B`, `4B` dark and soft |
 | `eraserMarks` | `true` | Faint smudges and ghost lines |
 | `seed` | random | Same input and seed give the same drawing |

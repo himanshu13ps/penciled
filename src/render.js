@@ -2,7 +2,7 @@
 
 import { createRandom } from "./random.js";
 import { PENCILS, strokeOutline } from "./stroke.js";
-import { GRAPHITE, background, defs } from "./paper.js";
+import { GRAPHITE, PAPER_STYLES, background, defs } from "./paper.js";
 import { SHAPES, eraserMark, shading, tone } from "./shapes.js";
 import { drawArrow, labelSpot, route } from "./edges.js";
 import { layout } from "./layout.js";
@@ -72,6 +72,7 @@ export function render(diagram, options = {}) {
   const seed = options.seed ?? diagram.paper?.seed ?? Math.floor(Math.random() * 2 ** 32);
   const rng = createRandom(seed);
   const pencil = PENCILS[diagram.paper?.pencil ?? "2B"];
+  const paperStyle = PAPER_STYLES[options.paperStyle ?? diagram.paper?.style ?? "aged"] ?? PAPER_STYLES.aged;
 
   const blocks = new Map(diagram.nodes.map((n) => [n.id, labelBlock(n)]));
   const sizes = new Map(diagram.nodes.map((n) => [n.id, n.size ?? shapeOf(n).size(blocks.get(n.id))]));
@@ -153,8 +154,8 @@ export function render(diagram, options = {}) {
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="${vb}">
 <style>${fontFaceCss()} text{font-family:${FONT_FAMILY},cursive;text-anchor:middle;fill:${GRAPHITE}}</style>
-<defs>${defs(seed)}</defs>
-<g transform="translate(${r1(minX)} ${r1(minY)})">${background(W, H, diagram.paper?.texture)}</g>
+<defs>${defs(seed, paperStyle)}</defs>
+<g transform="translate(${r1(minX)} ${r1(minY)})">${background(W, H, diagram.paper?.texture, paperStyle)}</g>
 <g fill="${GRAPHITE}">${back}${erased}</g>
 <g fill="${GRAPHITE}" filter="url(#pc-graphite)">${shade}${lines}${labels}</g>
 </svg>
