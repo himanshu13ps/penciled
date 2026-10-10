@@ -1,0 +1,11 @@
+{
+  "version": "0.1",
+  "type": "architecture",
+  "nodes": [
+    { "id": "client", "label": "Client" },
+    { "id": "server", "label": "Server" }
+  ],
+  "edges": [
+    { "from": "client", "to": "server" }
+  ]
+}

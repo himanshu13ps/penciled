@@ -1,0 +1,32 @@
+{
+  "$schema": "../schema/architecture.schema.json",
+  "version": "0.1",
+  "type": "architecture",
+  "title": "Photo sharing app",
+  "direction": "LR",
+  "nodes": [
+    { "id": "user", "label": "User", "shape": "person" },
+    { "id": "cdn", "label": "CDN", "shape": "cloud" },
+    { "id": "api", "label": "API server", "sublabel": "Node.js", "shape": "rounded", "group": "backend" },
+    { "id": "worker", "label": "Thumbnail\nworker", "shape": "rounded", "group": "backend" },
+    { "id": "jobs", "label": "Job queue", "sublabel": "Redis", "shape": "queue", "group": "backend" },
+    { "id": "db", "label": "Database", "sublabel": "Postgres", "shape": "database", "shade": "light", "group": "data" },
+    { "id": "store", "label": "Object storage", "sublabel": "S3", "shape": "box", "shade": "light", "group": "data" }
+  ],
+  "groups": [
+    { "id": "cloud", "label": "AWS" },
+    { "id": "backend", "label": "Backend", "parent": "cloud" },
+    { "id": "data", "label": "Data", "parent": "cloud", "shade": "light" }
+  ],
+  "edges": [
+    { "from": "user", "to": "cdn", "label": "views photos" },
+    { "from": "user", "to": "api", "label": "HTTPS" },
+    { "from": "cdn", "to": "store", "label": "fetches" },
+    { "from": "api", "to": "db", "label": "reads/writes", "arrow": "both" },
+    { "from": "api", "to": "store", "label": "uploads" },
+    { "from": "api", "to": "jobs", "label": "enqueue", "style": "dashed" },
+    { "from": "jobs", "to": "worker", "style": "dashed" },
+    { "from": "worker", "to": "store", "label": "thumbnails" }
+  ],
+  "paper": { "texture": "plain", "pencil": "2B", "eraserMarks": true, "seed": 42 }
+}

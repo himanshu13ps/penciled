@@ -39,4 +39,5 @@ grain and the odd eraser mark.
 ## Status
 
 - M0: done
-- M1: next
+- M1: done (schema/architecture.schema.json, examples/, tests/fixtures/invalid/)
+- M2: next

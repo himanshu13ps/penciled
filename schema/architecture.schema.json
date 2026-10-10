@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/himanshu13ps/penciled/main/schema/architecture.schema.json",
+  "title": "penciled architecture diagram",
+  "description": "Input for a hand-drawn pencil-style architecture diagram: nodes (boxes and other shapes), optional groups around them, and edges (arrows) between them.",
+  "type": "object",
+  "required": ["version", "type", "nodes"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional pointer to this schema, for editor support."
+    },
+    "version": {
+      "const": "0.1",
+      "description": "Schema version."
+    },
+    "type": {
+      "const": "architecture",
+      "description": "Diagram type. Only architecture diagrams exist in v0.1."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "description": "Handwritten title shown at the top of the page."
+    },
+    "direction": {
+      "enum": ["LR", "TB"],
+      "default": "LR",
+      "description": "Main flow for automatic layout: left to right or top to bottom. Ignored for nodes that have explicit positions."
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 40,
+      "items": { "$ref": "#/$defs/node" }
+    },
+    "groups": {
+      "type": "array",
+      "maxItems": 12,
+      "items": { "$ref": "#/$defs/group" }
+    },
+    "edges": {
+      "type": "array",
+      "maxItems": 80,
+      "items": { "$ref": "#/$defs/edge" }
+    },
+    "paper": { "$ref": "#/$defs/paper" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,39}$",
+      "description": "Identifier: starts with a letter, then letters, digits, '_' or '-'. Max 40 characters. Must be unique across nodes and groups."
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60,
+      "description": "Handwritten text. Use '\\n' for a line break."
+    },
+    "shade": {
+      "enum": ["none", "light", "medium", "dark"],
+      "description": "How much graphite shading fills the shape."
+    },
+    "node": {
+      "type": "object",
+      "required": ["id", "label"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "$ref": "#/$defs/label" },
+        "sublabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60,
+          "description": "Smaller second line under the label, e.g. a technology name."
+        },
+        "shape": {
+          "enum": ["box", "rounded", "database", "queue", "person", "cloud", "document"],
+          "default": "box",
+          "description": "Drawn shape. box: plain rectangle. rounded: service or process. database: cylinder. queue: horizontal cylinder. person: stick figure (user or actor). cloud: external system or internet. document: page with a folded corner (file, report, config)."
+        },
+        "shade": {
+          "allOf": [{ "$ref": "#/$defs/shade" }],
+          "default": "none"
+        },
+        "group": {
+          "$ref": "#/$defs/id",
+          "description": "Id of the group this node sits inside."
+        },
+        "position": {
+          "type": "object",
+          "description": "Manual placement of the node's centre, in page units (1 unit = 1 px at 100% zoom). Omit to let penciled place the node.",
+          "required": ["x", "y"],
+          "additionalProperties": false,
+          "properties": {
+            "x": { "type": "number", "minimum": 0 },
+            "y": { "type": "number", "minimum": 0 }
+          }
+        },
+        "size": {
+          "type": "object",
+          "description": "Manual size in page units. Omit to size the node to fit its label.",
+          "required": ["width", "height"],
+          "additionalProperties": false,
+          "properties": {
+            "width": { "type": "number", "minimum": 40, "maximum": 600 },
+            "height": { "type": "number", "minimum": 30, "maximum": 400 }
+          }
+        }
+      }
+    },
+    "group": {
+      "type": "object",
+      "required": ["id", "label"],
+      "additionalProperties": false,
+      "description": "A dashed outline drawn around its member nodes, e.g. a VPC, a cluster or a team boundary.",
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "$ref": "#/$defs/label" },
+        "parent": {
+          "$ref": "#/$defs/id",
+          "description": "Id of an enclosing group, for nesting."
+        },
+        "shade": {
+          "allOf": [{ "$ref": "#/$defs/shade" }],
+          "default": "none"
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "required": ["from", "to"],
+      "additionalProperties": false,
+      "description": "An arrow between two nodes.",
+      "properties": {
+        "from": { "$ref": "#/$defs/id" },
+        "to": { "$ref": "#/$defs/id" },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Short handwritten text next to the arrow, e.g. 'HTTPS' or 'writes'."
+        },
+        "style": {
+          "enum": ["solid", "dashed"],
+          "default": "solid",
+          "description": "dashed usually means async or optional."
+        },
+        "arrow": {
+          "enum": ["end", "start", "both", "none"],
+          "default": "end",
+          "description": "Which ends get an arrowhead."
+        }
+      }
+    },
+    "paper": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The look of the paper and pencil.",
+      "properties": {
+        "texture": {
+          "enum": ["plain", "lined", "grid"],
+          "default": "plain",
+          "description": "Paper ruling under the drawing."
+        },
+        "pencil": {
+          "enum": ["HB", "2B", "4B"],
+          "default": "2B",
+          "description": "Pencil hardness: HB is light and crisp, 4B is dark and soft."
+        },
+        "eraserMarks": {
+          "type": "boolean",
+          "default": true,
+          "description": "Add faint smudges and ghost lines where an eraser was used."
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295,
+          "description": "Random seed for the wobble. Same input and seed give the same drawing."
+        }
+      }
+    }
+  }
+}
