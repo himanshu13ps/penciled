@@ -7,8 +7,8 @@ layered passes, soft shading, paper grain and the odd eraser smudge.
 ![A hand-drawn architecture diagram of a photo sharing app: a user, a CDN, an API server, a job queue, a worker, a database and object storage, inside dashed AWS, Backend and Data outlines](examples/web-app.jpg)
 
 > Status: early work (v0.1 in progress). All seven shapes, groups, automatic
-> layout, shading and paper textures work. The layout validator, HTML viewer
-> and packaging as an agent skill are next.
+> layout, shading, paper textures and the validator work. The HTML viewer and
+> packaging as an agent skill are next.
 
 ## Try it
 
@@ -31,7 +31,16 @@ and a JPEG preview, are in [`examples/`](examples/):
 | [`event-pipeline`](examples/event-pipeline.jpg) | Manual positions, lined paper, HB pencil |
 | [`pencil-variants`](examples/pencil-variants.jpg) | 4B pencil, shading levels, dashed and two-way arrows |
 
-The input format is described in [`schema/README.md`](schema/README.md).
+Check an input without drawing it:
+
+```
+node src/cli.js validate diagram.json
+```
+
+The validator catches mistakes (unknown ids, typos, groups nested in a loop)
+and warns about things that will draw badly, such as arrows crossing or
+nodes overlapping, with a suggestion for each. The input format and every
+check are described in [`schema/README.md`](schema/README.md).
 
 ## What it does (planned for v0.1)
 

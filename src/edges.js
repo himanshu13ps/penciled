@@ -81,10 +81,10 @@ export function labelSpot(path, width, height, nodes, frames = []) {
       // Offset grows with how sideways the text sits relative to the line.
       const off = dist + Math.abs(nx) * (width / 2);
       const p = { x: m.x + nx * s * off, y: m.y + ny * s * off + height * 0.3 };
-      if (clear(p)) return p;
+      if (clear(p)) return { ...p, clear: true };
     }
   }
-  return { x: m.x + nx * 14, y: m.y + ny * 14 + height * 0.3 };
+  return { x: m.x + nx * 14, y: m.y + ny * 14 + height * 0.3, clear: false };
 }
 
 // An arrow along a routed path: a pencil shaft with a little extra sag of its

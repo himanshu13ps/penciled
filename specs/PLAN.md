@@ -42,4 +42,5 @@ grain and the odd eraser mark.
 - M1: done (schema/architecture.schema.json, examples/, tests/fixtures/invalid/)
 - M2: done
 - M3: done (all shapes, groups, layered layout, arrow routing, lined/grid paper)
-- M4: next
+- M4: done (src/validate.js: schema, reference and layout checks; `validate` CLI command)
+- M5: next

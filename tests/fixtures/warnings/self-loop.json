@@ -1,0 +1,1 @@
+{"version":"0.1","type":"architecture","nodes":[{"id":"a","label":"A"},{"id":"b","label":"B"}],"edges":[{"from":"a","to":"a"},{"from":"a","to":"b"}]}

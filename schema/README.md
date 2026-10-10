@@ -52,15 +52,46 @@ its own.
 | `eraserMarks` | `true` | Faint smudges and ghost lines |
 | `seed` | random | Same input and seed give the same drawing |
 
-## Rules the schema can't check
+## Checking input
 
-JSON Schema only checks the shape of each value. These rules link values
-together, and the validator (milestone M4) will enforce them:
+```
+node src/cli.js validate diagram.json          # human-readable report
+node src/cli.js validate diagram.json --json   # { valid, errors, warnings }
+```
 
-1. Every `id` is unique across nodes **and** groups.
-2. Edge `from`/`to` name existing nodes. A node `group` and a group `parent`
-   name existing groups.
-3. Group nesting has no cycles.
-4. Positions are all-or-nothing: give every node a `position`, or none.
-5. Warnings, not errors: a node linked to itself, duplicate edges, empty
-   groups.
+Rendering runs the same checks first: errors stop it, warnings are printed
+and drawing goes ahead. Add `--strict` to either command to fail on warnings
+too. Every problem has a `path` (where in the JSON), a `code` and a message
+that says what to change.
+
+**Errors** — the input can't be drawn as written:
+
+| Code | Meaning |
+|------|---------|
+| `schema` | A value doesn't match the schema (with a "did you mean" for typos) |
+| `duplicate-id` | Two nodes or groups share an id |
+| `unknown-node` | An arrow points at a node that doesn't exist |
+| `edge-to-group` | An arrow points at a group; arrows connect nodes |
+| `unknown-group` | A node's `group` or a group's `parent` doesn't exist |
+| `group-cycle` | Groups nest in a loop |
+| `partial-positions` | Some nodes have a `position` and some don't |
+
+**Warnings** — it will draw, but probably not as intended:
+
+| Code | Meaning |
+|------|---------|
+| `self-loop` | Arrow from a node to itself (not drawn) |
+| `duplicate-edge` | The same arrow twice |
+| `empty-group` | A group with no nodes (not drawn) |
+| `isolated-node` | A node with no arrows in a diagram that has some |
+| `node-overlap` | Two nodes on top of each other |
+| `node-in-other-group` | A node drawn inside a group it isn't in |
+| `group-overlap` | Two groups that aren't nested overlap |
+| `arrow-through-node` | An arrow couldn't be routed around a node |
+| `arrow-crossings` | Arrows cross each other |
+| `label-crowded` | An arrow label has no clear space |
+| `label-overflow` | A label is wider than its node's manual `size` |
+| `aspect` | The drawing is very wide or very tall; try the other `direction` |
+
+Layout warnings come from laying the diagram out exactly as it will be
+drawn, with the same seed.

@@ -1,0 +1,1 @@
+{"version":"0.1","type":"architecture","nodes":[{"id":"a","label":"A","group":"x"}],"groups":[{"id":"x","label":"X","parent":"y"},{"id":"y","label":"Y","parent":"x"}]}
