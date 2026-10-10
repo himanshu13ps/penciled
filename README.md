@@ -5,6 +5,8 @@ diagram that looks drawn by hand with a graphite pencil on paper: tapered,
 wobbly strokes, layered passes, hatched shading, paper grain and the odd
 eraser smudge.
 
+**[Try it in your browser →](https://himanshu13ps.github.io/penciled/)**
+
 ![A hand-drawn architecture diagram of a photo sharing app: a user, a CDN, an API server, a job queue, a worker, a database and object storage, inside dashed AWS, Backend and Data outlines](examples/web-app.jpg)
 
 - **Lays itself out.** Columns or rows follow the flow, groups stay
@@ -104,6 +106,7 @@ skills/penciled/    the skill: everything an agent installs
   schema/           JSON Schema and input reference
   fonts/            embedded handwriting font and its licence
 examples/           sample inputs with rendered SVG, JPEG and one viewer
+docs/               the website (GitHub Pages), with a live playground
 tests/              node --test suite (npm test)
 scripts/            dev tools (font rebuild)
 specs/              plan and design notes
@@ -117,7 +120,11 @@ npm test
 
 No dependencies to install. The tests cover rendering, layout, the
 validator (every error and warning code has a fixture named after it), the
-browser bundle and the CLI.
+browser bundle, the CLI and the website.
+
+The website in `docs/` loads a copy of the renderer and the examples. After
+changing anything in `skills/penciled/src/` or `examples/`, refresh them
+with `node scripts/build-site.mjs` (a test fails if you forget).
 
 ## License
 

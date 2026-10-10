@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>penciled · architecture diagrams, sketched in pencil</title>
+<meta name="description" content="An agent skill that turns a few lines of JSON into an architecture diagram that looks drawn by hand in graphite pencil. Lays itself out, checks itself, no dependencies.">
+<meta property="og:title" content="penciled">
+<meta property="og:description" content="Architecture diagrams, sketched in pencil. An agent skill with no dependencies.">
+<meta name="theme-color" content="#fbfaf7">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fbfaf7'/%3E%3Cpath d='M14 50 L44 12 L52 18 L22 56 L12 58 Z' fill='%23f2c14e' stroke='%2334343a' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M12 58 L14 50 L22 56 Z' fill='%2334343a'/%3E%3C/svg%3E">
+<link rel="preload" href="caveat.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face { font-family: "Caveat"; src: url(caveat.woff2) format("woff2"); font-display: swap; }
+
+:root {
+  --bg: #fbfaf7; --bg-2: #f3f1ea; --ink: #26262b; --ink-2: #55545c; --muted: #8a8890;
+  --line: #e2dfd6; --card: #ffffff; --code-bg: #26262b; --code-ink: #f3f1ea;
+  --mark: #ffe08a; --accent: #c9821e; --ok: #2f7d4f; --warn: #9a5b00; --warn-bg: #fff3dc;
+  --shadow: 0 1px 2px rgba(38,38,43,.06), 0 12px 32px -8px rgba(38,38,43,.18);
+  --hand: "Caveat", "Segoe Print", "Bradley Hand", cursive;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #17171a; --bg-2: #1f1f23; --ink: #ecebe6; --ink-2: #b9b7b0; --muted: #85838c;
+    --line: #2f2f35; --card: #222226; --code-bg: #0f0f11; --code-ink: #ecebe6;
+    --mark: #6b5617; --accent: #e8a948; --ok: #6fcf97; --warn: #ffc56b; --warn-bg: #3a2c12;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 16px 40px -10px rgba(0,0,0,.7); color-scheme: dark; }
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 var(--sans); -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+img, svg { max-width: 100%; }
+.wrap { width: min(1160px, 100% - 32px); margin-inline: auto; }
+.mark { background: linear-gradient(transparent 58%, var(--mark) 58%, var(--mark) 92%, transparent 92%); padding: 0 .1em; }
+.hand { font-family: var(--hand); }
+code, pre, textarea { font-family: var(--mono); }
+
+/* Nav */
+nav { position: sticky; top: 0; z-index: 10; backdrop-filter: saturate(1.4) blur(10px); -webkit-backdrop-filter: saturate(1.4) blur(10px);
+  background: color-mix(in srgb, var(--bg) 82%, transparent); border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+nav .wrap { display: flex; align-items: center; gap: 24px; height: 60px; }
+.logo { font: 700 30px/1 var(--hand); text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+.logo svg { width: 26px; height: 26px; }
+nav .links { display: flex; gap: 22px; margin-left: auto; font-size: 15px; }
+nav .links a { text-decoration: none; color: var(--ink-2); }
+nav .links a:hover { color: var(--ink); }
+.btn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink);
+  border-radius: 10px; padding: 8px 14px; font: 500 15px/1.2 var(--sans); text-decoration: none; cursor: pointer; }
+.btn:hover { border-color: var(--muted); }
+.btn.dark { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn svg { width: 18px; height: 18px; }
+button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Hero */
+.hero { padding: 72px 0 40px; text-align: center; }
+.eyebrow { display: inline-block; font: 600 13px/1 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); border-radius: 999px; padding: 7px 12px; }
+h1 { font: 700 clamp(44px, 7.4vw, 92px)/1.02 var(--hand); letter-spacing: -.01em; margin: 22px auto 18px; max-width: 14ch; }
+.lede { font-size: clamp(17px, 2vw, 20px); color: var(--ink-2); max-width: 640px; margin: 0 auto 30px; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: center; }
+.cmd { display: inline-flex; align-items: center; gap: 12px; background: var(--code-bg); color: var(--code-ink); border-radius: 12px;
+  padding: 10px 10px 10px 18px; font: 15px/1.2 var(--mono); max-width: 100%; }
+.cmd .p { color: #9b9aa2; user-select: none; }
+.cmd code { white-space: nowrap; overflow: auto; }
+.copy { border: 0; background: rgba(255,255,255,.1); color: inherit; border-radius: 8px; padding: 7px 10px; font: 500 13px/1 var(--sans); cursor: pointer; }
+.copy:hover { background: rgba(255,255,255,.18); }
+
+.sheet { position: relative; background: #fbfaf7; border-radius: 6px; box-shadow: var(--shadow); line-height: 0; overflow: hidden; }
+.sheet svg { width: 100%; height: auto; display: block; }
+.hero-sheet { margin: 56px auto 0; transform: rotate(-.6deg); }
+.hero-sheet::after { content: ""; position: absolute; inset: auto 12% -14px; height: 24px; background: radial-gradient(closest-side, rgba(0,0,0,.12), transparent); z-index: -1; }
+.tape { position: absolute; width: 110px; height: 30px; background: color-mix(in srgb, #f2e3b3 75%, transparent); top: -12px; transform: rotate(-4deg); box-shadow: 0 1px 2px rgba(0,0,0,.08); z-index: 2; }
+.hero-note { margin-top: 16px; display: flex; justify-content: center; gap: 10px; align-items: center; color: var(--muted); font-size: 14px; }
+.linkbtn { background: none; border: 0; color: var(--ink-2); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding: 0; }
+
+/* Draw-in animation for rendered strokes */
+.draw-in .ink > * { opacity: 0; animation: ink .45s ease forwards; animation-delay: var(--d, 0s); }
+@keyframes ink { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .draw-in .ink > * { animation: none; opacity: 1; } }
+
+/* Sections */
+section { padding: 88px 0; }
+.alt { background: var(--bg-2); border-block: 1px solid var(--line); }
+.kicker { font: 700 26px/1 var(--hand); color: var(--accent); margin: 0 0 6px; }
+h2 { font: 700 clamp(30px, 4vw, 44px)/1.15 var(--sans); letter-spacing: -.02em; margin: 0 0 14px; }
+.sub { color: var(--ink-2); max-width: 680px; margin: 0 0 40px; }
+
+.features { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+.feature { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px; }
+.feature h3 { font: 700 27px/1.1 var(--hand); margin: 0 0 8px; }
+.feature p { margin: 0; color: var(--ink-2); font-size: 15.5px; }
+.feature svg.icon { width: 44px; height: 44px; margin-bottom: 10px; color: var(--ink); }
+
+/* Playground */
+.play { display: grid; grid-template-columns: minmax(300px, 460px) 1fr; gap: 20px; align-items: start; }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.panel-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--ink-2); flex-wrap: wrap; }
+.panel-head .grow { flex: 1; }
+#preset { flex: 1; min-width: 0; }
+select { font: 14px var(--sans); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+textarea#src { display: block; width: 100%; height: 600px; border: 0; resize: vertical; padding: 14px 16px; font-size: 12.5px; line-height: 1.6;
+  background: var(--card); color: var(--ink); tab-size: 2; white-space: pre; overflow: auto; }
+textarea#src:focus { outline: none; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 50%, transparent); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-right: 1px solid var(--line); background: var(--bg); color: var(--ink); font: 13px var(--sans); padding: 6px 10px; cursor: pointer; }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.seg button:disabled { opacity: .45; cursor: not-allowed; }
+.small { font-size: 13px; padding: 6px 10px; border-radius: 8px; }
+.preview { padding: 18px; background: repeating-linear-gradient(45deg, transparent 0 10px, color-mix(in srgb, var(--line) 35%, transparent) 10px 11px); min-height: 420px; display: grid; place-items: center; }
+.preview .sheet { width: 100%; transform: none; }
+.status { display: flex; gap: 8px; align-items: flex-start; padding: 12px 14px; border-top: 1px solid var(--line); font-size: 14px; min-height: 46px; }
+.status.ok { color: var(--ok); }
+.status.warn { color: var(--warn); background: var(--warn-bg); }
+.status.err { color: #c0392b; background: color-mix(in srgb, #c0392b 10%, transparent); }
+.status ul { margin: 0; padding-left: 18px; }
+.status code { font-size: 12.5px; opacity: .8; }
+
+/* Gallery */
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 22px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; transition: transform .15s ease, box-shadow .15s ease; }
+.card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.thumb { position: relative; aspect-ratio: 4 / 3; background: var(--bg-2); line-height: 0; overflow: hidden; }
+.thumb svg { position: absolute; inset: 16px; width: calc(100% - 32px); height: calc(100% - 32px); filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.08)) drop-shadow(0 6px 14px rgba(0,0,0,.10)); }
+.card .meta { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--line); }
+.card h3 { margin: 0; font: 600 16px/1.3 var(--sans); }
+.card p { margin: 0; color: var(--ink-2); font-size: 14px; flex: 1; }
+.card .open { margin-top: 10px; align-self: flex-start; }
+
+/* Steps */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; counter-reset: step; }
+.step { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 12px; }
+.step h3 { margin: 0; font: 700 28px/1 var(--hand); display: flex; align-items: center; gap: 10px; }
+.step h3::before { counter-increment: step; content: counter(step); font: 700 14px/1 var(--sans); width: 28px; height: 28px; border-radius: 50%;
+  display: inline-grid; place-items: center; background: var(--mark); color: var(--ink); }
+.step p { margin: 0; color: var(--ink-2); font-size: 15.5px; }
+pre { margin: 0; background: var(--code-bg); color: var(--code-ink); border-radius: 12px; padding: 14px 16px; font-size: 13px; line-height: 1.55; overflow: auto; }
+pre .c { color: #8f8e96; }
+pre .k { color: #f2c14e; }
+pre .s { color: #9ed9a8; }
+pre .w { color: #ffc56b; }
+
+.use { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.use .panel { padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+.use h3 { margin: 0; font: 600 20px/1.3 var(--sans); }
+.use p { margin: 0; color: var(--ink-2); }
+.prompt { font: 600 24px/1.3 var(--hand); background: var(--bg); border: 1px dashed var(--muted); border-radius: 12px; padding: 14px 16px; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+td { padding: 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+td:first-child { white-space: nowrap; padding-right: 16px; }
+td code { font-size: 13px; }
+
+footer { padding: 48px 0 64px; color: var(--muted); font-size: 14px; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center; justify-content: space-between; }
+footer .logo { font-size: 26px; color: var(--ink); }
+
+@media (max-width: 960px) {
+  .features { grid-template-columns: 1fr 1fr; }
+  .play { grid-template-columns: 1fr; }
+  textarea#src { height: 300px; }
+  .steps, .use { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+  nav .links { display: none; }
+  nav .btn { margin-left: auto; }
+  nav .btn span { display: none; }
+  .cmd { font-size: 12.5px; padding-left: 12px; gap: 8px; }
+  .hero { padding-top: 48px; }
+  .features { grid-template-columns: 1fr; }
+  section { padding: 64px 0; }
+  .gallery { grid-template-columns: 1fr; }
+  .hero-sheet { transform: none; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="penciled home">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M14 50 L44 12 L52 18 L22 56 L12 58 Z" fill="#f2c14e" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"/><path d="M12 58 L14 50 L22 56 Z" fill="currentColor"/><path d="M40 17 L48 23" stroke="currentColor" stroke-width="3"/></svg>
+      penciled
+    </a>
+    <div class="links"><a href="#playground">Playground</a><a href="#gallery">Gallery</a><a href="#how">How it works</a><a href="#use">Use it</a></div>
+    <a class="btn" href="https://github.com/himanshu13ps/penciled">
+      <svg viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      <span>GitHub</span>
+    </a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <span class="eyebrow">An agent skill · no dependencies</span>
+    <h1>Architecture diagrams, sketched in pencil.</h1>
+    <p class="lede">penciled turns a few lines of JSON into a diagram that looks <span class="mark">drawn by hand</span>: graphite grain, hatched shading, corners that overshoot. It lays itself out, checks itself, and runs anywhere Node does.</p>
+    <div class="cta">
+      <div class="cmd"><span class="p">$</span><code id="install">npx skills add himanshu13ps/penciled</code><button class="copy" data-copy="install">Copy</button></div>
+      <a class="btn" href="#playground">Try it in the browser ↓</a>
+    </div>
+    <div class="sheet hero-sheet" id="hero" role="img" aria-label="A hand-drawn diagram: You ask your agent to sketch it; the agent writes diagram.json; penciled lays it out, checks it and draws sketch.svg and viewer.html.">
+      <div class="tape" style="left: 8%"></div><div class="tape" style="right: 8%; transform: rotate(3deg)"></div>
+    </div>
+    <div class="hero-note">Drawn live in your browser · <button class="linkbtn" id="hero-again">draw it again</button></div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="features">
+      <div class="feature">
+        <svg class="icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 10.5h12.2v9.3H5.8z"/><path d="M30 28.3h12.4v9.4H30.2z"/><path d="M18.5 15c6 .2 8 6 11.2 15.4"/><path d="M26.6 27.8l3.2 2.9 1-4.2"/></svg>
+        <h3>Lays itself out</h3>
+        <p>Columns follow the flow, groups stay together, arrows bend around boxes. No coordinates needed.</p>
+      </div>
+      <div class="feature">
+        <svg class="icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M24 5.5c7 3 11 3.6 16.2 3.4.3 14-3.6 26.4-16.3 33.6C11.4 35.4 7.6 23 8 9c5.4.2 9.2-.6 16-3.5z"/><path d="M16.8 23.6l5 5 10-10.6"/></svg>
+        <h3>Checks itself</h3>
+        <p>A validator catches typos and broken references, and warns about crossings and crowded labels, each with a fix.</p>
+      </div>
+      <div class="feature">
+        <svg class="icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M9 6.3h21l8.4 8.5V42H9.2z"/><path d="M29.6 6.6v8.6h8.6"/><path d="M15 23.5h17M15 30h12.6"/></svg>
+        <h3>SVG or a viewer</h3>
+        <p>A plain SVG for docs, or one offline HTML page where readers redraw, zoom and save PNG.</p>
+      </div>
+      <div class="feature">
+        <svg class="icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M24 6.2l15.6 9v17.7L24 41.8 8.4 32.9V15.2z"/><path d="M8.6 15.4L24 24.2l15.4-8.8M24 24.2v17.4"/></svg>
+        <h3>Zero dependencies</h3>
+        <p>Node 18+ and nothing else. The handwriting font is embedded, so files work offline and anywhere.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="playground">
+  <div class="wrap">
+    <p class="kicker">Playground</p>
+    <h2>Edit the JSON, watch it redraw</h2>
+    <p class="sub">This runs the real renderer and validator, right here. Change a label, add a node, switch the paper. Nothing leaves your browser.</p>
+    <div class="play">
+      <div class="panel">
+        <div class="panel-head">
+          <label for="preset">Start from</label>
+          <select id="preset"></select>
+          <button class="btn small" id="format" title="Re-indent the JSON">Tidy</button>
+        </div>
+        <textarea id="src" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Diagram JSON"></textarea>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div class="seg" data-opt="style" aria-label="Paper"><button data-v="clean">Clean</button><button data-v="aged">Aged</button><button data-v="bright">Bright</button></div>
+          <div class="seg" data-opt="pencil" aria-label="Pencil"><button data-v="HB">HB</button><button data-v="2B">2B</button><button data-v="4B">4B</button></div>
+          <div class="seg" data-opt="direction" aria-label="Flow"><button data-v="LR" title="Left to right">→</button><button data-v="TB" title="Top to bottom">↓</button></div>
+          <span class="grow"></span>
+          <button class="btn small" id="redraw" title="A new hand-drawn take">↻ Redraw</button>
+          <button class="btn small dark" id="download">Download SVG</button>
+        </div>
+        <div class="preview"><div class="sheet" id="out"></div></div>
+        <div class="status" id="status" role="status" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="gallery">
+  <div class="wrap">
+    <p class="kicker">Gallery</p>
+    <h2>Same renderer, different systems</h2>
+    <p class="sub">Every drawing below is rendered live from its JSON. Open one in the playground to see how it's written.</p>
+    <div class="gallery" id="cards"></div>
+  </div>
+</section>
+
+<section class="alt" id="how">
+  <div class="wrap">
+    <p class="kicker">How it works</p>
+    <h2>Describe it, check it, draw it</h2>
+    <p class="sub">Your agent does all three when you ask for a sketch. You can also run them yourself.</p>
+    <div class="steps">
+      <div class="step">
+        <h3>Describe</h3>
+        <p>Nodes, the groups around them, and arrows between them. Shapes carry meaning: cylinders for data, clouds for things you don't run.</p>
+<pre><span class="c">{</span>
+  <span class="k">"nodes"</span>: [
+    { <span class="k">"id"</span>: <span class="s">"api"</span>, <span class="k">"label"</span>: <span class="s">"API"</span>,
+      <span class="k">"shape"</span>: <span class="s">"rounded"</span> },
+    { <span class="k">"id"</span>: <span class="s">"db"</span>, <span class="k">"label"</span>: <span class="s">"Orders"</span>,
+      <span class="k">"shape"</span>: <span class="s">"database"</span> }
+  ],
+  <span class="k">"edges"</span>: [
+    { <span class="k">"from"</span>: <span class="s">"api"</span>, <span class="k">"to"</span>: <span class="s">"db"</span> }
+  ]
+<span class="c">}</span></pre>
+      </div>
+      <div class="step">
+        <h3>Check</h3>
+        <p>The validator lays the diagram out exactly as it will be drawn and says what to change. Agents fix their own input this way.</p>
+<pre><span class="c">$</span> penciled validate shop.json
+<span class="w">warning</span> edges: 1 arrow crossing:
+  orders → payments × catalog → db.
+  Try the other direction, or move one
+  end into the same group as the other
+<span class="c">shop.json: 0 errors, 1 warning</span></pre>
+      </div>
+      <div class="step">
+        <h3>Draw</h3>
+        <p>An SVG for docs and slides, or the interactive viewer. The same seed always gives the same drawing.</p>
+<pre><span class="c">$</span> penciled shop.json -o shop.svg
+<span class="c">$</span> penciled shop.json -o shop.html
+<span class="c">$</span> penciled shop.json -o v2.svg \
+    --seed 42</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="use">
+  <div class="wrap">
+    <p class="kicker">Use it</p>
+    <h2>Two ways in</h2>
+    <p class="sub">Install it as a skill and ask for diagrams in plain words, or call the command line directly.</p>
+    <div class="use">
+      <div class="panel">
+        <h3>With your agent</h3>
+        <p>Works with Claude Code, Cursor, Codex, OpenCode and <a href="https://github.com/vercel-labs/skills#supported-agents">other agents</a> that read skills.</p>
+        <div class="cmd" style="align-self: stretch"><span class="p">$</span><code id="install2">npx skills add himanshu13ps/penciled</code><button class="copy" data-copy="install2">Copy</button></div>
+        <p>Then ask:</p>
+        <div class="prompt">“sketch the architecture of this repo as a hand-drawn diagram”</div>
+      </div>
+      <div class="panel">
+        <h3>From the command line</h3>
+        <p>Clone the repo; there is nothing to install.</p>
+        <table>
+          <tr><td><code>penciled d.json -o d.svg</code></td><td>Draw an SVG</td></tr>
+          <tr><td><code>penciled d.json -o d.html</code></td><td>The interactive viewer</td></tr>
+          <tr><td><code>penciled validate d.json</code></td><td>Check without drawing</td></tr>
+          <tr><td><code>--seed 42</code></td><td>A different take, reproducibly</td></tr>
+          <tr><td><code>--strict</code></td><td>Fail on warnings, for CI</td></tr>
+        </table>
+        <p style="font-size:14px">Here <code>penciled</code> is <code>node skills/penciled/src/cli.js</code>. Full input reference in the <a href="https://github.com/himanshu13ps/penciled/blob/main/skills/penciled/schema/README.md">schema docs</a>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <a class="logo" href="#top">penciled</a>
+    <span>MIT licensed · Handwriting by <a href="https://fonts.google.com/specimen/Caveat">Caveat</a> (OFL) · <a href="https://github.com/himanshu13ps/penciled">Source on GitHub</a></span>
+  </div>
+</footer>
+
+<script src="penciled.js"></script>
+<script src="examples.js"></script>
+<script>
+(() => {
+  const P = window.penciled, EX = window.PENCILED_EXAMPLES;
+  const $ = (id) => document.getElementById(id);
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let uid = 0;
+
+  // Several drawings share this page, and each defines filters with the same
+  // ids; give every drawing its own so they don't borrow each other's paper.
+  function draw(el, diagram, seed, { animate = false } = {}) {
+    const n = ++uid;
+    const svg = P.render(diagram, { seed }).replace(/pc-/g, "pc" + n + "-");
+    el.querySelectorAll(":scope > svg").forEach((s) => s.remove());
+    el.insertAdjacentHTML("beforeend", svg);
+    const s = el.querySelector(":scope > svg");
+    s.setAttribute("aria-hidden", "true");
+    s.removeAttribute("width"); s.removeAttribute("height");
+    if (animate && !reduced) {
+      const ink = s.querySelector('g[filter*="graphite"]');
+      ink.classList.add("ink");
+      const parts = [...ink.children];
+      const step = Math.min(14, 2200 / Math.max(1, parts.length));
+      parts.forEach((p, i) => p.style.setProperty("--d", (i * step) / 1000 + "s"));
+      el.classList.remove("draw-in"); void el.offsetWidth; el.classList.add("draw-in");
+    }
+    return svg;
+  }
+
+  // Hero: the pipeline itself, flowing down on narrow screens.
+  const hero = {
+    version: "0.1", type: "architecture", direction: "LR",
+    nodes: [
+      { id: "you", label: "You", shape: "person" },
+      { id: "agent", label: "Your agent", shape: "rounded" },
+      { id: "json", label: "diagram.json", shape: "document" },
+      { id: "penciled", label: "penciled", sublabel: "lay out · check · draw", shape: "rounded", shade: "light" },
+      { id: "svg", label: "sketch.svg", shape: "document" },
+      { id: "html", label: "viewer.html", shape: "document" },
+    ],
+    edges: [
+      { from: "you", to: "agent", label: "“sketch it”" },
+      { from: "agent", to: "json", label: "writes" },
+      { from: "json", to: "penciled" },
+      { from: "penciled", to: "svg" },
+      { from: "penciled", to: "html" },
+    ],
+    paper: { eraserMarks: false },
+  };
+  let heroSeed = 7;
+  const drawHero = () => {
+    const narrow = innerWidth < 760;
+    draw($("hero"), { ...hero, direction: narrow ? "TB" : "LR" }, heroSeed, { animate: true });
+    $("hero").style.maxWidth = narrow ? "420px" : "";
+  };
+  drawHero();
+  $("hero-again").addEventListener("click", () => { heroSeed = (Math.random() * 2 ** 32) >>> 0; drawHero(); });
+  let lastNarrow = innerWidth < 760;
+  addEventListener("resize", () => { const n = innerWidth < 760; if (n !== lastNarrow) { lastNarrow = n; drawHero(); } });
+
+  // Copy buttons.
+  document.querySelectorAll("[data-copy]").forEach((b) => b.addEventListener("click", async () => {
+    const text = $(b.dataset.copy).textContent;
+    try { await navigator.clipboard.writeText(text); }
+    catch { const r = document.createRange(); r.selectNodeContents($(b.dataset.copy)); getSelection().removeAllRanges(); getSelection().addRange(r); document.execCommand("copy"); }
+    b.textContent = "Copied"; setTimeout(() => (b.textContent = "Copy"), 1400);
+  }));
+
+  // Playground.
+  const src = $("src"), out = $("out"), status = $("status");
+  const state = { style: "clean", pencil: "2B", direction: "LR", seed: 1 };
+  let lastSvg = "", title = "diagram";
+  for (const ex of EX) $("preset").append(new Option(ex.diagram.title || ex.name, ex.name));
+  // One node, group or arrow per line, like the files in examples/.
+  function pretty(d) {
+    const one = (v) => JSON.stringify(v).replace(/":/g, '": ').replace(/,"/g, ', "').replace(/^\{/, "{ ").replace(/\}$/, " }");
+    const lines = Object.entries(d).map(([k, v]) => Array.isArray(v) && v.length && typeof v[0] === "object"
+      ? '  "' + k + '": [\n' + v.map((x) => "    " + one(x)).join(",\n") + "\n  ]"
+      : '  "' + k + '": ' + (v && typeof v === "object" ? one(v) : JSON.stringify(v)));
+    return "{\n" + lines.join(",\n") + "\n}";
+  }
+  const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+
+  function load(name) {
+    const ex = EX.find((e) => e.name === name);
+    const d = structuredClone(ex.diagram);
+    state.style = d.paper?.style ?? "clean";
+    state.pencil = d.paper?.pencil ?? "2B";
+    state.direction = d.direction ?? "LR";
+    state.seed = d.paper?.seed ?? 1;
+    src.value = pretty(d);
+    $("preset").value = name;
+    update();
+  }
+
+  function setStatus(kind, html) { status.className = "status " + kind; status.innerHTML = html; }
+
+  function update() {
+    let d;
+    try { d = JSON.parse(src.value); }
+    catch (e) { return setStatus("err", "✗ Not valid JSON yet: " + esc(e.message)); }
+    if (d && typeof d === "object" && !Array.isArray(d)) {
+      d.paper = { ...(d.paper || {}), style: state.style, pencil: state.pencil, seed: state.seed };
+      if (!(Array.isArray(d.nodes) && d.nodes.length && d.nodes.every((n) => n && n.position))) d.direction = state.direction;
+    }
+    const r = P.validate(d, { seed: state.seed });
+    for (const seg of document.querySelectorAll("#playground .seg")) {
+      for (const b of seg.children) b.setAttribute("aria-pressed", String(state[seg.dataset.opt] === b.dataset.v));
+    }
+    if (!r.valid) {
+      return setStatus("err", "<span>✗</span><ul>" + r.errors.slice(0, 6).map((e) => "<li><code>" + esc(e.path) + "</code> " + esc(e.message) + "</li>").join("") + "</ul>");
+    }
+    title = d.title || "diagram";
+    lastSvg = draw(out, d, state.seed);
+    if (r.warnings.length) setStatus("warn", "<span>⚠</span><ul>" + r.warnings.map((w) => "<li><code>" + esc(w.path) + "</code> " + esc(w.message) + "</li>").join("") + "</ul>");
+    else setStatus("ok", "✓ No problems. " + d.nodes.length + " nodes, " + (d.edges || []).length + " arrows.");
+  }
+
+  let t;
+  src.addEventListener("input", () => { clearTimeout(t); t = setTimeout(update, 250); });
+  src.addEventListener("keydown", (e) => {
+    if (e.key === "Tab" && !e.shiftKey) {
+      e.preventDefault();
+      const { selectionStart: a, selectionEnd: b } = src;
+      src.setRangeText("  ", a, b, "end");
+      src.dispatchEvent(new Event("input"));
+    }
+  });
+  $("preset").addEventListener("change", (e) => load(e.target.value));
+  $("format").addEventListener("click", () => { try { src.value = pretty(JSON.parse(src.value)); } catch {} });
+  for (const seg of document.querySelectorAll("#playground .seg")) {
+    seg.addEventListener("click", (e) => {
+      const b = e.target.closest("button"); if (!b) return;
+      state[seg.dataset.opt] = b.dataset.v; update();
+    });
+  }
+  $("redraw").addEventListener("click", () => { state.seed = (Math.random() * 2 ** 32) >>> 0; update(); });
+  $("download").addEventListener("click", () => {
+    if (!lastSvg) return;
+    // Put the original filter ids back so the file stands alone.
+    const file = lastSvg.replace(/pc\d+-/g, "pc-");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([file], { type: "image/svg+xml" }));
+    a.download = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".svg";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  load("web-app");
+
+  // Gallery: drawn as each card scrolls into view.
+  const cards = $("cards");
+  const io = "IntersectionObserver" in window ? new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) { io.unobserve(e.target); paint(e.target); }
+  }, { rootMargin: "200px" }) : null;
+  function paint(card) {
+    const ex = EX.find((x) => x.name === card.dataset.name);
+    draw(card.querySelector(".thumb"), ex.diagram, ex.diagram.paper?.seed ?? 1);
+  }
+  for (const ex of EX) {
+    const card = document.createElement("article");
+    card.className = "card"; card.dataset.name = ex.name;
+    card.innerHTML = '<div class="thumb" role="img" aria-label="' + esc(ex.diagram.title || ex.name) + ' diagram"></div><div class="meta"><h3>' +
+      esc(ex.diagram.title || ex.name) + "</h3><p>" + esc(ex.caption) + '</p><button class="btn small open">Open in playground</button></div>';
+    card.querySelector(".open").addEventListener("click", () => { load(ex.name); $("playground").scrollIntoView(); });
+    cards.append(card);
+    io ? io.observe(card) : paint(card);
+  }
+})();
+</script>
+</body>
+</html>
