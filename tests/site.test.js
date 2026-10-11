@@ -27,3 +27,13 @@ test("gallery lists only examples that validate cleanly", async () => {
     assert.deepEqual(validate(d).warnings, [], name);
   }
 });
+
+test("link preview image exists, is 1280x640 and is referenced by the page", () => {
+  const png = readFileSync(docs("og.png"));
+  assert.equal(png.toString("ascii", 1, 4), "PNG");
+  assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [1280, 640]);
+  const html = readFileSync(docs("index.html"), "utf8");
+  for (const tag of ['property="og:image" content="https://himanshu13ps.github.io/penciled/og.png"', 'name="twitter:card" content="summary_large_image"', 'property="og:image:width" content="1280"']) {
+    assert.ok(html.includes(tag), tag);
+  }
+});

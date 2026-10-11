@@ -102,17 +102,26 @@ export const NO_BROWSER = "PNG output needs Chrome, Edge, Chromium or Brave inst
  * Write `svg` as a PNG at `scale` times its size. Throws with a readable
  * message if no browser is found or the screenshot fails.
  */
-export function svgToPng(svg, outPath, { scale = 2, browser = findBrowser(), timeout = 60000 } = {}) {
-  if (!browser) throw new Error(NO_BROWSER);
+export function svgToPng(svg, outPath, options = {}) {
   const m = svg.match(/<svg[^>]*\swidth="(\d+)"[^>]*\sheight="(\d+)"/);
   if (!m) throw new Error("not a penciled SVG: no width and height");
-  const width = +m[1], height = +m[2];
+  const html = `<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#fff;overflow:hidden}svg{display:block}</style></head><body>${svg}</body></html>`;
+  return htmlToPng(html, outPath, { ...options, width: +m[1], height: +m[2] });
+}
 
+/**
+ * Screenshot a self-contained HTML page of `width` x `height` CSS pixels as
+ * a PNG at `scale` times that size. `assets` maps file names to contents
+ * written next to the page, so it can load them with relative URLs.
+ */
+export function htmlToPng(html, outPath, { width, height, scale = 2, assets = {}, browser = findBrowser(), timeout = 60000 } = {}) {
+  if (!browser) throw new Error(NO_BROWSER);
   const work = mkdtempSync(join(tmpdir(), "penciled-"));
   try {
-    const page = join(work, "drawing.html");
-    const shot = join(work, "drawing.png");
-    writeFileSync(page, `<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#fff;overflow:hidden}svg{display:block}</style></head><body>${svg}</body></html>`);
+    const page = join(work, "page.html");
+    const shot = join(work, "shot.png");
+    writeFileSync(page, html);
+    for (const [name, data] of Object.entries(assets)) writeFileSync(join(work, name), data);
     const args = [
       "--headless=new",
       "--disable-gpu",
@@ -124,7 +133,7 @@ export function svgToPng(svg, outPath, { scale = 2, browser = findBrowser(), tim
       `--force-device-scale-factor=${scale}`,
       // Extra height: see cropPngHeight.
       `--window-size=${width},${height + 300}`,
-      // Give the embedded font time to load before the screenshot.
+      // Give embedded fonts time to load before the screenshot.
       "--virtual-time-budget=3000",
       `--screenshot=${shot}`,
       pathToFileURL(page).href,

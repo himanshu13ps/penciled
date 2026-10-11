@@ -126,6 +126,8 @@ browser bundle, the CLI and the website.
 The website in `docs/` loads a copy of the renderer and the examples. After
 changing anything in `skills/penciled/src/` or `examples/`, refresh them
 with `node scripts/build-site.mjs` (a test fails if you forget).
+The link preview image, `docs/og.png`, is made by `node scripts/build-og.mjs`
+(it needs Chrome, Edge, Chromium or Brave, like PNG output).
 
 ## License
 
