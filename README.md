@@ -9,6 +9,8 @@ eraser smudge.
 
 ![A hand-drawn architecture diagram of a photo sharing app: a user, a CDN, an API server, a job queue, a worker, a database and object storage, inside dashed AWS, Backend and Data outlines](examples/web-app.jpg)
 
+![The playground: typing a new node draws it at once, a typo in an arrow is caught with "did you mean", then the same diagram is switched to aged paper, a soft pencil and top-to-bottom flow](docs/demo.gif)
+
 - **Lays itself out.** Columns or rows follow the flow, groups stay
   together, arrows bend around boxes.
 - **Checks itself.** A validator catches mistakes and warns about crossings,
@@ -128,6 +130,8 @@ changing anything in `skills/penciled/src/` or `examples/`, refresh them
 with `node scripts/build-site.mjs` (a test fails if you forget).
 The link preview image, `docs/og.png`, is made by `node scripts/build-og.mjs`
 (it needs Chrome, Edge, Chromium or Brave, like PNG output).
+The demo, `docs/demo.gif` and `docs/demo.mp4`, is recorded from the playground by
+`node scripts/record-demo.mjs` (needs Playwright and ffmpeg).
 
 ## License
 
