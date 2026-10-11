@@ -1,0 +1,51 @@
+name: Bug report
+description: Something errors, crashes or doesn't work as documented.
+title: "Bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! If the drawing works but looks wrong (overlaps, crossings, cut-off labels), use **"Drawing doesn't look right"** instead.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead. Include any error message.
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where did it happen?
+      options:
+        - Command line (penciled d.json -o …)
+        - Command line, PNG output
+        - Interactive viewer (HTML file)
+        - Playground on the website
+        - An AI agent using the skill
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: json
+    attributes:
+      label: Diagram JSON
+      description: The smallest input that shows the problem. Remove anything private.
+      render: json
+  - type: input
+    id: command
+    attributes:
+      label: Command
+      placeholder: node skills/penciled/src/cli.js diagram.json -o out.svg
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: penciled version (or commit), Node.js version (`node -v`), operating system, and browser for PNG or the viewer.
+      placeholder: penciled 0.1.0, Node 22.4, macOS 15, Chrome 141
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Screenshots, the output of `validate --json`, or other context.

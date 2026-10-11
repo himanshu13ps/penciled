@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Try it in the playground
+    url: https://himanshu13ps.github.io/penciled/#playground
+    about: Edit JSON and see the drawing and validator messages live, in your browser.
+  - name: Input format and every check
+    url: https://github.com/himanshu13ps/penciled/blob/main/skills/penciled/schema/README.md
+    about: Every field, its limits, and what each error and warning means.

@@ -1,0 +1,26 @@
+name: Share a diagram you made
+description: Made something with penciled? Show it off. It helps others see what's possible.
+title: "Showcase: "
+labels: ["showcase"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We'd love to see it. Only share what you're happy to make public.
+  - type: textarea
+    id: image
+    attributes:
+      label: The drawing
+      description: Paste or drag an image (PNG or JPG work best here).
+    validations:
+      required: true
+  - type: textarea
+    id: about
+    attributes:
+      label: What does it show, and how did you make it?
+      description: For example "our checkout flow, written by Claude Code from a one-line request" or "hand-written JSON, 4B pencil on lined paper".
+  - type: textarea
+    id: json
+    attributes:
+      label: Diagram JSON (optional)
+      render: json

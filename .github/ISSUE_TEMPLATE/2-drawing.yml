@@ -1,0 +1,40 @@
+name: Drawing doesn't look right
+description: The diagram renders but the layout or look is off (overlaps, crossings, labels, shapes).
+title: "Drawing: "
+labels: ["layout"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        These reports make penciled better for everyone. With the JSON and the seed we can reproduce your exact drawing.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What looks wrong?
+      description: For example "the arrow from api to db runs through the cache", "label cut off", "groups overlap".
+    validations:
+      required: true
+  - type: textarea
+    id: json
+    attributes:
+      label: Diagram JSON
+      description: Please include `paper.seed`, or say which seed you used, so we see the same drawing. Remove anything private.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: Paste or drag an image of the drawing. If you can, mark the problem.
+  - type: textarea
+    id: expected
+    attributes:
+      label: What would look right?
+      description: A sketch, a description, or a link to a diagram you like.
+  - type: textarea
+    id: validate
+    attributes:
+      label: Validator output
+      description: The output of `penciled validate diagram.json`, if you have it. Did it warn about the problem?
+      render: text

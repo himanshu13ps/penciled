@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest a new shape, option, output format or improvement.
+title: "Idea: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The diagram or workflow you have in mind, and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would help?
+      description: How you'd like it to work. JSON you'd like to be able to write is very welcome.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Workarounds you've tried
